@@ -123,7 +123,7 @@ const plushies = [
 
 {
     name: "Crayon Banafix",
-    image: "images/Crayon.png",
+    image: "images/crayon.png",
     rarity: "legendary",
     collection: "📦 general"
 },
