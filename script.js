@@ -6,294 +6,294 @@ const plushies = [
     name: "Classic Banafix",
     image: "images/Classic.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "2 for 1 Banafix",
     image: "images/2for1.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "Banafix v3",
     image: "images/v3.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "negative Banafix",
     image: "images/negative.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "Error Banafix",
     image: "images/error.png",
     rarity: "legendary",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "retro Banafix",
     image: "images/retro.png",
     rarity: "legendary",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "angel Banafix",
     image: "images/angel.png",
     rarity: "legendary",
-    collection: "📦 general"
+    collection:  "general"
 },
 
 {
     name: "Suit Banafix",
     image: "images/suit.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "sweater Banafix",
     image: "images/sweater.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "camouflage Banafix",
     image: "images/camouflage.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "Milkman Banafix",
     image: "images/milman.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "spy Banafix",
     image: "images/spy.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "grass Banafix",
     image: "images/grass.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "cosmic Banafix",
     image: "images/cosmic.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "golden Banafix",
     image: "images/golden.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "Unknown Banafix",
     image: "images/unknown.png",
     rarity: "secret",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "67 Banafix",
     image: "images/67.png",
     rarity: "secret",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "-180 Banafix",
     image: "images/180.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "nerd Banafix",
     image: "images/glasses.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "4k Banafix",
     image: "images/4k.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "colorless Banafix",
     image: "images/colorless.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "alien Banafix",
     image: "images/alien.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "ghost Banafix",
     image: "images/ghost.png",
     rarity: "epic",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "faceless Banafix",
     image: "images/faceless.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "Banafix v2",
     image: "images/v2.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "angry Banafix",
     image: "images/angry.png",
     rarity: "common",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "tiny Banafix",
     image: "images/tiny.png",
     rarity: "legendary",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "Crayon Banafix",
     image: "images/crayon.png",
     rarity: "legendary",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "invisible Banafix",
     image: "images/invisible.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "achievement Banafix",
     image: "images/achievement.png",
     rarity: "rare",
-    collection: "📦 general"
+    collection: "general"
 },
 
 {
     name: "cake Banafix",
     image: "images/cake.png",
     rarity: "common",
-    collection: "🍹 summer event"
+    collection: "summer event"
 },
 
 {
     name: "beach Banafix",
     image: "images/beach.png",
     rarity: "rare",
-    collection: "🍹 summer event"
+    collection: "summer event"
 },
 
 {
     name: "orange juice Banafix",
     image: "images/orange.png",
     rarity: "epic",
-    collection: "🍹 summer event"
+    collection: "summer event"
 },
 
 {
     name: "monster Banafix",
     image: "images/monster.png",
     rarity: "epic",
-    collection: "🍹 summer event"
+    collection: "summer event"
 },
 
 {
     name: "swimsuit Banafix",
     image: "images/swimsuit.png",
     rarity: "rare",
-    collection: "🍹 summer event"
+    collection: "summer event"
 },
 
 {
     name: "Ben",
     image: "images/ben.png",
     rarity: "epic",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 {
     name: "sus Banafix",
     image: "images/sus.png",
     rarity: "rare",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 {
     name: "cring Banafix",
     image: "images/cry.png",
     rarity: "common",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 {
     name: "portal Banafix",
     image: "images/portal.png",
     rarity: "legendary",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 {
     name: "cubed Banafix",
     image: "images/cubed.png",
     rarity: "legendary",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 {
     name: "ball Banafix",
     image: "images/ball.png",
     rarity: "epic",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 {
     name: "neighbor Banafix",
     image: "images/neighbor.png",
     rarity: "secret",
-    collection: "👑 legends"
+    collection: "legends"
 },
 
 ];
@@ -479,8 +479,8 @@ function updateFreeCrateButton() {
     if (btn) {
         btn.disabled = freeCrateCount <= 0;
         btn.title = freeCrateCount > 0
-            ? `Masz ${freeCrateCount} darmowych crateów`
-            : 'Brak darmowych crateów';
+            ? `You have ${freeCrateCount} free crates`
+            : 'no free crates';
     }
 }
 
@@ -516,8 +516,8 @@ function updateEventStatus() {
     if (!status) return;
 
     const available = [];
-    if (summer) available.push('🍹 summer event');
-    if (legend) available.push('👑 legends');
+    if (summer) available.push('summer event');
+    if (legend) available.push('legends');
 
     status.textContent = available.length > 0
         ? `Available: ${available.join(' | ')}`
@@ -529,7 +529,7 @@ function getAvailablePlushes() {
     const legend = isLegendEventActive();
     return plushies.filter(p =>
         isGeneralCollection(p)
-        || (p.collection && p.collection.startsWith('🍹') && summer)
+        || (p.collection && p.collection.startsWith('🍹') &summer)
         || (p.collection && p.collection.startsWith('👑') && legend)
     );
 }
@@ -583,7 +583,7 @@ function drawPlush(options = {}) {
         const diff = Date.now() - Number(lastDraw);
 
         if (diff < DRAW_TIME) {
-            alert("Dzisiaj już wylosowałeś Banafixa!");
+            alert("Today you have already drawn Banafix!");
             return;
         }
     }
@@ -899,9 +899,9 @@ function renderGallery() {
     const gallery = document.getElementById('gallery');
     if (!gallery) return;
     const collectedNames = new Set(collection.map(item => item.name));
-    const general = sortGalleryPlushes(plushies.filter(isGeneralCollection));
+    consgeneral = sortGalleryPlushes(plushies.filter(isGeneralCollection));
     const eventPlushes = sortGalleryPlushes(plushies.filter(isEventCollection));
-    const summer = isSummerEventActive();
+    conssummer = isSummerEventActive();
     const legend = isLegendEventActive();
     const eventGroups = eventPlushes.reduce((groups, plush) => {
         const key = plush.collection;
@@ -935,7 +935,7 @@ function renderGallery() {
     const totalItemsCollected = collection.reduce((sum, item) => sum + (item.count || 0), 0);
     const totalUniqueCollected = collectedNames.size;
     const totalUnique = plushies.length;
-    const generalProgress = collectionProgress(general);
+    const generalProgress = collectionProgresgeneral;
 
     gallery.innerHTML = `
         <h3>Banafix Gallery</h3>
@@ -944,7 +944,7 @@ function renderGallery() {
             <h4>📦 General collection (${generalProgress.collected}/${generalProgress.total})</h4>
             <div class="event-note">General collection is always available in the gallery.</div>
             <div class="gallery-grid">
-                ${general.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
+                general.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
             </div>
         </div>
         ${Object.keys(eventGroups).map(group => {
