@@ -529,7 +529,7 @@ function getAvailablePlushes() {
     const legend = isLegendEventActive();
     return plushies.filter(p =>
         isGeneralCollection(p)
-        || (p.collection && p.collection.startsWith('🍹') &summer)
+        || (p.collection && p.collection.startsWith('🍹') && summer)
         || (p.collection && p.collection.startsWith('👑') && legend)
     );
 }
@@ -899,9 +899,9 @@ function renderGallery() {
     const gallery = document.getElementById('gallery');
     if (!gallery) return;
     const collectedNames = new Set(collection.map(item => item.name));
-    consgeneral = sortGalleryPlushes(plushies.filter(isGeneralCollection));
+    const general = sortGalleryPlushes(plushies.filter(isGeneralCollection));
     const eventPlushes = sortGalleryPlushes(plushies.filter(isEventCollection));
-    conssummer = isSummerEventActive();
+    const summer = isSummerEventActive();
     const legend = isLegendEventActive();
     const eventGroups = eventPlushes.reduce((groups, plush) => {
         const key = plush.collection;
@@ -935,7 +935,7 @@ function renderGallery() {
     const totalItemsCollected = collection.reduce((sum, item) => sum + (item.count || 0), 0);
     const totalUniqueCollected = collectedNames.size;
     const totalUnique = plushies.length;
-    const generalProgress = collectionProgresgeneral;
+    const generalProgress = collectionProgress(general);
 
     gallery.innerHTML = `
         <h3>Banafix Gallery</h3>
@@ -944,7 +944,7 @@ function renderGallery() {
             <h4>📦 General collection (${generalProgress.collected}/${generalProgress.total})</h4>
             <div class="event-note">General collection is always available in the gallery.</div>
             <div class="gallery-grid">
-                general.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
+                ${general.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
             </div>
         </div>
         ${Object.keys(eventGroups).map(group => {
