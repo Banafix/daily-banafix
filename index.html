@@ -27,6 +27,26 @@
         <button id="closeNewsModal" class="news-modal-close" aria-label="Zamknij">×</button>
         <h2 id="newsModalTitle">Latest news 📢</h2>
         <div class="news-card news-modal-card">
+            <h3>Update 1.1</h3>
+            <img src="images/update1.png" alt="Update 1.1" class="news-image">
+            <ul>
+                Now, for each new level you gain, you get one free crete that you can use whenever you want.
+                ps. I recommend saving it for events
+            </ul>
+        </div>
+        <div class="news-card news-modal-card">
+            <h3>Drop #1</h3>
+            <img src="images/drop1.png" alt="Drop 1" class="news-image">
+            <ul>
+                11 new Banafixes!
+                <li>⬜ 2 for 1 banafix, banafix v3, negative banafix</li>
+                <li>🟦 sweter banafix, camouflage banafix</li>
+                <li>🟪 spy banafix, cosmic banafix, grass banafix</li>
+                <li>🟨 angel banafix, retro banafix</li>
+                <li>⬛ neighbor banafix</li>
+            </ul>
+        </div>
+         <div class="news-card news-modal-card">
             <h3>News #1</h3>
             <img src="images/news1.png" alt="News 1" class="news-image">
             <ul>
@@ -40,12 +60,16 @@
                 <li>🏆 Achievements</li>
             </ul>
         </div>
+        
     </div>
 </div>
 
 <h1>Daily Banafix</h1>
 
-<button id="drawBtn" class="draw-button">Draw Banafix</button>
+<div class="draw-controls">
+    <button id="drawBtn" class="draw-button">Draw Banafix</button>
+    <button id="freeCrateBtn" class="free-crate-button">Open free crate <span id="freeCrateCount">0</span></button>
+</div>
 
 <p id="timer"></p>
 

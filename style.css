@@ -213,15 +213,53 @@ button:hover{
     background:#322744;
 }
 
-.draw-button{
-    display:block;
+button:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+}
+
+.draw-controls{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
     margin:18px auto 10px;
-    min-width:280px;
-    padding:22px 36px;
-    font-size:24px;
+}
+
+.draw-button,
+.free-crate-button{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-width:220px;
+    padding:18px 24px;
+    font-size:20px;
     font-weight:700;
     border-radius:18px;
     box-shadow:0 10px 24px rgba(54,45,99,0.28);
+}
+
+.free-crate-button{
+    background:linear-gradient(135deg, #8b50fa, #4f46e5);
+}
+
+.free-crate-button:hover{
+    background:linear-gradient(135deg, #7c3aed, #4338ca);
+}
+
+.free-crate-button .crate-count{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:24px;
+    height:24px;
+    padding:0 7px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.2);
+    font-size:14px;
+    font-weight:700;
 }
 
 #result{

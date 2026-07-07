@@ -10,8 +10,43 @@ const plushies = [
 },
 
 {
+    name: "2 for 1 Banafix",
+    image: "images/2for1.png",
+    rarity: "common",
+    collection: "📦 general"
+},
+
+{
+    name: "Banafix v3",
+    image: "images/v3.png",
+    rarity: "common",
+    collection: "📦 general"
+},
+
+{
+    name: "negative Banafix",
+    image: "images/negative.png",
+    rarity: "common",
+    collection: "📦 general"
+},
+
+{
     name: "Error Banafix",
     image: "images/error.png",
+    rarity: "legendary",
+    collection: "📦 general"
+},
+
+{
+    name: "retro Banafix",
+    image: "images/retro.png",
+    rarity: "legendary",
+    collection: "📦 general"
+},
+
+{
+    name: "angel Banafix",
+    image: "images/angel.png",
     rarity: "legendary",
     collection: "📦 general"
 },
@@ -24,8 +59,43 @@ const plushies = [
 },
 
 {
+    name: "sweater Banafix",
+    image: "images/sweater.png",
+    rarity: "rare",
+    collection: "📦 general"
+},
+
+{
+    name: "camouflage Banafix",
+    image: "images/camouflage.png",
+    rarity: "rare",
+    collection: "📦 general"
+},
+
+{
     name: "Milkman Banafix",
     image: "images/milman.png",
+    rarity: "epic",
+    collection: "📦 general"
+},
+
+{
+    name: "spy Banafix",
+    image: "images/spy.png",
+    rarity: "epic",
+    collection: "📦 general"
+},
+
+{
+    name: "grass Banafix",
+    image: "images/grass.png",
+    rarity: "epic",
+    collection: "📦 general"
+},
+
+{
+    name: "cosmic Banafix",
+    image: "images/cosmic.png",
     rarity: "epic",
     collection: "📦 general"
 },
@@ -219,10 +289,18 @@ const plushies = [
     collection: "👑 legends"
 },
 
+{
+    name: "neighbor Banafix",
+    image: "images/neighbor.png",
+    rarity: "secret",
+    collection: "👑 legends"
+},
+
 ];
 
 let collection = loadCollection();
 let rolling = false;
+let freeCrateCount = loadFreeCrateCount();
 
 // Rarity percentages (should sum to ~100)
 const RARITY_PERCENTS = {
@@ -310,6 +388,7 @@ function ensureLevelInfo() {
 }
 
 function updateLevelInfo() {
+    awardFreeCratesIfNeeded();
     const xp = loadPlayerXp();
     const { level, currentLevelXp, nextLevelXp } = getXpProgress(xp);
     const badge = getLevelBadge(level);
@@ -364,6 +443,45 @@ function loadCollection() {
 
 function saveCollection() {
     localStorage.setItem('collection', JSON.stringify(collection));
+}
+
+function loadFreeCrateCount() {
+    return Number(localStorage.getItem('freeCrateCount')) || 0;
+}
+
+function saveFreeCrateCount(count) {
+    localStorage.setItem('freeCrateCount', Math.max(0, count));
+}
+
+function awardFreeCratesIfNeeded() {
+    const currentXp = loadPlayerXp();
+    const currentLevel = getLevelFromXp(currentXp);
+    const awardedLevel = Number(localStorage.getItem('lastAwardedLevel')) || 0;
+
+    if (currentLevel > awardedLevel) {
+        const cratesToAward = currentLevel - awardedLevel;
+        freeCrateCount = loadFreeCrateCount() + cratesToAward;
+        saveFreeCrateCount(freeCrateCount);
+        localStorage.setItem('lastAwardedLevel', currentLevel);
+        updateFreeCrateButton();
+    }
+}
+
+function updateFreeCrateButton() {
+    const btn = document.getElementById('freeCrateBtn');
+    const countEl = document.getElementById('freeCrateCount');
+    freeCrateCount = loadFreeCrateCount();
+
+    if (countEl) {
+        countEl.textContent = freeCrateCount;
+    }
+
+    if (btn) {
+        btn.disabled = freeCrateCount <= 0;
+        btn.title = freeCrateCount > 0
+            ? `Masz ${freeCrateCount} darmowych crateów`
+            : 'Brak darmowych crateów';
+    }
 }
 
 function renderRarityLegend(){
@@ -455,12 +573,13 @@ function refreshCrateState() {
     }
 }
 
-function drawPlush() {
+function drawPlush(options = {}) {
     if (rolling) return;
 
+    const { bypassCooldown = false } = options;
     const lastDraw = localStorage.getItem("lastDraw");
 
-    if (lastDraw) {
+    if (!bypassCooldown && lastDraw) {
         const diff = Date.now() - Number(lastDraw);
 
         if (diff < DRAW_TIME) {
@@ -476,7 +595,10 @@ function drawPlush() {
     }
 
     rolling = true;
-    document.getElementById('drawBtn').disabled = true;
+    const drawBtn = document.getElementById('drawBtn');
+    const freeCrateBtn = document.getElementById('freeCrateBtn');
+    if (drawBtn) drawBtn.disabled = true;
+    if (freeCrateBtn) freeCrateBtn.disabled = true;
 
     const startTime = Date.now();
     const revealDuration = 2800;
@@ -599,11 +721,30 @@ function drawPlush() {
         window.setTimeout(() => {
             showCrateOpenState();
             rolling = false;
-            document.getElementById('drawBtn').disabled = false;
+            const drawBtn = document.getElementById('drawBtn');
+            const freeCrateBtn = document.getElementById('freeCrateBtn');
+            if (drawBtn) drawBtn.disabled = false;
+            if (freeCrateBtn) freeCrateBtn.disabled = false;
+            updateFreeCrateButton();
         }, revealDuration);
     }
 
     animateOpening();
+}
+
+function openFreeCrate() {
+    if (rolling) return;
+
+    const count = loadFreeCrateCount();
+    if (count <= 0) {
+        alert('Nie masz żadnych darmowych crateów.');
+        return;
+    }
+
+    freeCrateCount = count - 1;
+    saveFreeCrateCount(freeCrateCount);
+    updateFreeCrateButton();
+    drawPlush({ bypassCooldown: true });
 }
 
 function rollPlushVariant() {
@@ -696,12 +837,15 @@ function initApp() {
     openNewsModal();
 
     const drawBtn = document.getElementById('drawBtn');
-    if (drawBtn) drawBtn.addEventListener('click', drawPlush);
+    const freeCrateBtn = document.getElementById('freeCrateBtn');
+    if (drawBtn) drawBtn.addEventListener('click', () => drawPlush());
+    if (freeCrateBtn) freeCrateBtn.addEventListener('click', openFreeCrate);
 
     setupDarkModeButton();
     renderRarityLegend();
     updateEventStatus();
     updateLevelInfo();
+    updateFreeCrateButton();
     renderGallery();
     showCollection();
 }
