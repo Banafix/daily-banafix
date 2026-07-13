@@ -296,6 +296,13 @@ const plushies = [
     collection: "👑 legends"
 },
 
+{
+    name: "sombrero Banafix",
+    image: "images/sombrero.png",
+    rarity: "rare",
+    collection: "🌮 taco"
+},
+
 ];
 
 let collection = loadCollection();
@@ -501,23 +508,29 @@ function isLegendEventActive(date = new Date()) {
     return date.getDay() === 5; // Fridays only
 }
 
+function isTacoEventActive(date = new Date()) {
+    return date.getDay() === 2; // Tuesdays only
+}
+
 function isGeneralCollection(plush) {
     return plush.collection && plush.collection.startsWith('📦');
 }
 
 function isEventCollection(plush) {
-    return plush.collection && (plush.collection.startsWith('🍹') || plush.collection.startsWith('👑'));
+    return plush.collection && (plush.collection.startsWith('🍹') || plush.collection.startsWith('👑') || plush.collection.startsWith('🌮'));
 }
 
 function updateEventStatus() {
     const status = document.getElementById('eventStatus');
     const summer = isSummerEventActive();
     const legend = isLegendEventActive();
+    const taco = isTacoEventActive();
     if (!status) return;
 
     const available = [];
     if (summer) available.push('summer event');
     if (legend) available.push('legends');
+    if (taco) available.push('taco');
 
     status.textContent = available.length > 0
         ? `Available: ${available.join(' | ')}`
@@ -527,10 +540,12 @@ function updateEventStatus() {
 function getAvailablePlushes() {
     const summer = isSummerEventActive();
     const legend = isLegendEventActive();
+    const taco = isTacoEventActive();
     return plushies.filter(p =>
         isGeneralCollection(p)
         || (p.collection && p.collection.startsWith('🍹') && summer)
         || (p.collection && p.collection.startsWith('👑') && legend)
+        || (p.collection && p.collection.startsWith('🌮') && taco)
     );
 }
 
@@ -903,6 +918,7 @@ function renderGallery() {
     const eventPlushes = sortGalleryPlushes(plushies.filter(isEventCollection));
     const summer = isSummerEventActive();
     const legend = isLegendEventActive();
+    const taco = isTacoEventActive();
     const eventGroups = eventPlushes.reduce((groups, plush) => {
         const key = plush.collection;
         groups[key] = groups[key] || [];
@@ -948,13 +964,15 @@ function renderGallery() {
             </div>
         </div>
         ${Object.keys(eventGroups).map(group => {
-            const enabledGroup = group.startsWith('🍹') ? summer : group.startsWith('👑') ? legend : false;
+            const enabledGroup = group.startsWith('🍹') ? summer : group.startsWith('👑') ? legend :group.startsWith('🌮') ? taco : false;
             const groupPlushes = eventGroups[group];
             const progress = collectionProgress(groupPlushes);
             const note = group.startsWith('🍹')
                 ? 'Summer event is available from July 1 to August 31.'
                 : group.startsWith('👑')
                     ? 'Legends event is available on Fridays only.'
+                    : group.startsWith('🌮')
+                        ? 'Taco event is available on Thursdays only.'
                     : '';
             return `
             <div class="gallery-section">
