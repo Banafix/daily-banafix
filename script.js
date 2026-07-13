@@ -333,7 +333,7 @@ const plushies = [
 
 {
     name: "Pinata Banafix",
-    image: "images/pinata.png",
+    image: "images/Pinata.png",
     rarity: "epic",
     collection: "🌮 taco tuesday"
 },
