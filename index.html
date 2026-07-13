@@ -22,11 +22,37 @@
     </div>
 </div>
 
+<div id="achievementsModal" class="achievements-modal hidden" aria-hidden="true">
+    <div class="achievements-modal-backdrop"></div>
+    <div id="achievementsPanel" class="achievements-panel" role="dialog" aria-modal="true" aria-labelledby="achievementsTitle">
+        <button id="closeAchievementsModal" class="news-modal-close" aria-label="Close">×</button>
+        <h3 id="achievementsTitle">Achievements</h3>
+        <div id="achievementsList"></div>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
 <div id="newsModal" class="news-modal hidden" aria-hidden="true">
     <div class="news-modal-backdrop"></div>
     <div class="news-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="newsModalTitle">
         <button id="closeNewsModal" class="news-modal-close" aria-label="Zamknij">×</button>
         <h2 id="newsModalTitle">Latest news 📢</h2>
+        <div class="news-card news-modal-card">
+            <h3>Achievements Update & Drop #2</h3>
+            <img src="images/update2.png" alt="Update 1.2" class="news-image">
+            <ul>
+                I added achievements, there will be more of them but for now there are only 6.
+                <li>✨ What's new?</li>
+                <li>achievements!</li>
+                <li>9 new banafixes</li>
+                <li>new taco thusday collection</li>
+                <li>exp for gold and rainbow variants</li>
+                <li>🐛 Bug fixes</li>
+                <li>time does not reset after opening a free case</li>
+                <li>text renders correctly in gallery</li>
+            </ul>
+        </div>
         <div class="news-card news-modal-card">
             <h3>Update 1.1</h3>
             <img src="images/update1.png" alt="Update 1.1" class="news-image">
@@ -79,6 +105,7 @@
 
 <div id="eventStatus" style="margin:10px; color: var(--text);"></div>
 <div id="rarityLegend" style="margin:10px;"></div>
+<button id="achievementsBtn">🏆 Achievements</button>
 <div id="gallery" style="margin:10px;"></div>
 
 <script src="script.js"></script>

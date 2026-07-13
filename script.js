@@ -262,8 +262,22 @@ const plushies = [
 },
 
 {
+    name: "stickman Banafix",
+    image: "images/stickman.png",
+    rarity: "rare",
+    collection: "👑 legends"
+},
+
+{
     name: "cring Banafix",
     image: "images/cry.png",
+    rarity: "common",
+    collection: "👑 legends"
+},
+
+{
+    name: "fallout Banafix",
+    image: "images/fallout.png",
     rarity: "common",
     collection: "👑 legends"
 },
@@ -290,6 +304,13 @@ const plushies = [
 },
 
 {
+    name: "7 minutes Banafix",
+    image: "images/7.png",
+    rarity: "epic",
+    collection: "👑 legends"
+},
+
+{
     name: "neighbor Banafix",
     image: "images/neighbor.png",
     rarity: "secret",
@@ -300,8 +321,44 @@ const plushies = [
     name: "sombrero Banafix",
     image: "images/sombrero.png",
     rarity: "rare",
-    collection: "🌮 taco"
+    collection: "🌮 taco tuesday"
 },
+
+{
+    name: "cactus Banafix",
+    image: "images/cactus.png",
+    rarity: "epic",
+    collection: "🌮 taco tuesday"
+},
+
+{
+    name: "Pinata Banafix",
+    image: "images/pinata.png",
+    rarity: "epic",
+    collection: "🌮 taco tuesday"
+},
+
+{
+    name: "taco Banafix",
+    image: "images/taco.png",
+    rarity: "secret",
+    collection: "🌮 taco tuesday"
+},
+
+{
+    name: "lava Banafix",
+    image: "images/lava.png",
+    rarity: "legendary",
+    collection: "🌮 taco tuesday"
+},
+
+{
+    name: "mexican Banafix",
+    image: "images/mexican.png",
+    rarity: "common",
+    collection: "🌮 taco tuesday"
+},
+
 
 ];
 
@@ -326,6 +383,12 @@ const RARITY_XP = {
     secret: 200,
 };
 
+const VARIANT_XP = {
+    gold: 40,
+    rainbow: 60,
+    normal: 0
+};
+
 const VARIANT_CHANCES = {
     rainbow: 2,
     gold: 7
@@ -343,6 +406,88 @@ const LEVEL_BADGES = [
     { id: 'legendary', minLevel: 80, name: 'Legendary Collector', emoji: '👑' },
     { id: 'ultimate', minLevel: 90, name: 'Ultimate Collector', emoji: '🌟' },
     { id: 'supreme', minLevel: 100, name: 'Supreme Collector', emoji: '🔥' }
+];
+
+function getCrateRewardLabel(rewardCrates) {
+    return `${rewardCrates} free crate${rewardCrates === 1 ? '' : 's'}`;
+}
+
+function createNamedAchievement({ id, title, description, icon, requiredNames, rewardCrates = 1, reward, detailTitle = 'Required Banafixes', category = 'Sets' }) {
+    return {
+        id,
+        title,
+        description,
+        type: 'one-time',
+        target: requiredNames.length,
+        rewardCrates,
+        reward: reward || getCrateRewardLabel(rewardCrates),
+        icon,
+        category,
+        requirementType: 'named',
+        detailTitle,
+        requiredNames
+    };
+}
+
+const ACHIEVEMENT_CATEGORIES = [
+    { id: 'sets', title: 'Banafix Sets' }
+];
+
+const ACHIEVEMENTS = [
+    createNamedAchievement({
+        id: 'system-error',
+        title: 'System Error',
+        description: 'Collect the given Banafixes.',
+        icon: 'images/System Error.png',
+        rewardCrates: 4,
+        category: 'sets',
+        requiredNames: ['Error Banafix', 'retro Banafix', '4k Banafix', 'Unknown Banafix']
+    }),
+    createNamedAchievement({
+        id: 'starter-set',
+        title: 'Starter Set',
+        description: 'Collect the given Banafixes.',
+        icon: 'images/Starter Set.png',
+        rewardCrates: 1,
+        category: 'sets',
+        requiredNames: ['Classic Banafix', '2 for 1 Banafix', 'Banafix v2', 'Banafix v3']
+    }),
+    createNamedAchievement({
+        id: 'stealth-squad',
+        title: 'Stealth Squad',
+        description: 'Collect the given Banafixes.',
+        icon: 'images/Stealth Squad.png',
+        rewardCrates: 3,
+        category: 'sets',
+        requiredNames: ['spy Banafix', 'camouflage Banafix', 'invisible Banafix', 'neighbor Banafix']
+    }),
+    createNamedAchievement({
+        id: 'fantastic-four',
+        title: 'Fantastic Four',
+        description: 'Collect the given Banafixes.',
+        icon: 'images/Fantastic Four.png',
+        rewardCrates: 2,
+        category: 'sets',
+        requiredNames: ['invisible Banafix', 'nerd Banafix', 'Ben', 'lava Banafix']
+    }),
+    createNamedAchievement({
+        id: 'numberjacks',
+        title: 'Numberjacks',
+        description: 'Collect the given Banafixes.',
+        icon: 'images/Numberjacks.png',
+        rewardCrates: 3,
+        category: 'sets',
+        requiredNames: ['7 minutes Banafix', '2 for 1 Banafix', '-180 Banafix', '67 Banafix']
+    }),
+    createNamedAchievement({
+        id: 'evil-vs-good',
+        title: 'Evil vs Good',
+        description: 'Collect the given Banafixes.',
+        icon: 'images/Evil vs Good.png',
+        rewardCrates: 2,
+        category: 'sets',
+        requiredNames: ['monster Banafix', 'angel Banafix']
+    }),
 ];
 
 function getLevelBadge(level) {
@@ -384,6 +529,14 @@ function savePlayerXp(xp) {
     localStorage.setItem('playerXp', xp);
 }
 
+function loadAchievementsState() {
+    return JSON.parse(localStorage.getItem('achievementsState')) || {};
+}
+
+function saveAchievementsState(state) {
+    localStorage.setItem('achievementsState', JSON.stringify(state));
+}
+
 function ensureLevelInfo() {
     let info = document.getElementById('levelInfo');
     if (info) return info;
@@ -408,8 +561,168 @@ function updateLevelInfo() {
     `;
 }
 
+function getAchievementProgress() {
+    const ownedNames = new Set(collection.map(item => item.name));
+
+    return ACHIEVEMENTS.map(achievement => {
+        let progress = 0;
+        let completed = false;
+
+        if (achievement.requirementType === 'named') {
+            const requiredNames = achievement.requiredNames || [];
+            progress = requiredNames.filter(name => ownedNames.has(name)).length;
+        }
+
+        completed = progress >= achievement.target;
+
+        return {
+            ...achievement,
+            current: Math.min(progress, achievement.target),
+            completed
+        };
+    });
+}
+
+const expandedAchievements = new Set();
+
+function renderAchievementDetails(achievement) {
+    function renderPlushCard(name, owned, count = 0) {
+        const plush = getPlushByName(name);
+        const collectedItem = collection.find(item => item.name === name);
+        const plushName = plush ? plush.name : name;
+        const rarity = plush ? plush.rarity : 'common';
+        const img = plush ? plush.image : 'images/Banafix.png';
+        const variantClass = collectedItem && collectedItem.rainbowCount > 0 ? ' rainbow-card' : collectedItem && collectedItem.goldCount > 0 ? ' gold-card' : '';
+        return `
+            <div class="gallery-card achievement-gallery-card${variantClass}${owned ? '' : ' disabled-card missing'}">
+                <img src="${img}" alt="${plushName}" onerror="this.onerror=null;this.src='images/Banafix.png'">
+                <div class="gallery-name">${plushName}</div>
+                <div class="rarity ${rarity}">${rarity}</div>
+                <div class="gallery-meta">${owned ? 'Owned' : 'Needed for achievement'}</div>
+            </div>
+        `;
+    }
+
+    if (achievement.requirementType === 'named' && Array.isArray(achievement.requiredNames)) {
+        return `
+            <div class="achievement-detail">
+                <div class="achievement-detail-title">${achievement.detailTitle || 'Required Banafixes'}</div>
+                <div class="achievement-plush-grid">
+                    ${achievement.requiredNames.map(name => {
+                        const ownedItem = collection.find(item => item.name === name);
+                        return renderPlushCard(name, Boolean(ownedItem), ownedItem ? ownedItem.count : 0);
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    return '';
+}
+
+function toggleAchievementExpansion(id) {
+    if (expandedAchievements.has(id)) {
+        expandedAchievements.delete(id);
+    } else {
+        expandedAchievements.add(id);
+    }
+    renderAchievementsPanel();
+}
+
+function renderAchievementsPanel() {
+    const panel = document.getElementById('achievementsPanel');
+    const list = document.getElementById('achievementsList');
+    if (!panel || !list) return;
+    const progress = getAchievementProgress();
+    const groupedAchievements = ACHIEVEMENT_CATEGORIES.map(category => ({
+        ...category,
+        achievements: progress.filter(achievement => achievement.category === category.id)
+    })).filter(category => category.achievements.length > 0);
+
+    function renderAchievementCard(achievement) {
+        const percent = Math.round((achievement.current / achievement.target) * 100);
+        const expanded = expandedAchievements.has(achievement.id);
+        const canExpand = achievement.requirementType === 'named';
+        const expandIndicator = canExpand
+            ? `<div class="achievement-expand-indicator ${expanded ? 'expanded' : ''}"><span class="achievement-expand-text">Click to expand</span><span class="achievement-expand-arrow">▾</span></div>`
+            : '';
+        return `
+            <div class="achievement-card ${achievement.completed ? 'achievement-completed' : ''} ${expanded ? 'expanded' : ''}">
+                <div class="achievement-header${canExpand ? ' achievement-toggle' : ''}"${canExpand ? ` data-id="${achievement.id}"` : ''}>
+                    <img class="achievement-icon" src="${achievement.icon}" alt="${achievement.title} icon" onerror="this.onerror=null;this.src='images/achievement.png'">
+                    <div>
+                        <strong>${achievement.title}</strong>
+                        <div style="font-size:12px; color:inherit; opacity:0.8">${achievement.reward}</div>
+                    </div>
+                    ${expandIndicator}
+                </div>
+                <div class="achievement-description">${achievement.description}</div>
+                <div class="achievement-progress">
+                    <div class="achievement-progress-bar"><div class="achievement-progress-fill" style="width:${percent}%"></div></div>
+                    <div>${achievement.current}/${achievement.target}</div>
+                </div>
+                <div class="achievement-status ${achievement.completed ? 'achievement-status-completed' : 'achievement-status-progress'}">${achievement.completed ? 'Completed!' : 'In progress'}</div>
+                ${canExpand && expanded ? renderAchievementDetails(achievement) : ''}
+            </div>
+        `;
+    }
+
+    list.innerHTML = groupedAchievements.map(category => `
+        <section class="achievement-category-section">
+            <h4 class="achievement-category-title">${category.title}</h4>
+            ${category.achievements.map(renderAchievementCard).join('')}
+        </section>
+    `).join('');
+
+    list.querySelectorAll('.achievement-toggle').forEach(header => {
+        header.addEventListener('click', () => {
+            const id = header.getAttribute('data-id');
+            if (id) toggleAchievementExpansion(id);
+        });
+    });
+}
+
+function showToast(message, type='info', icon='') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `notification ${type}`;
+
+    if (icon) {
+        const content = document.createElement('div');
+        content.className = 'notification-content';
+
+        const iconImg = document.createElement('img');
+        iconImg.className = 'notification-icon';
+        iconImg.src = icon;
+        iconImg.alt = 'Achievement icon';
+        iconImg.onerror = () => {
+            iconImg.onerror = null;
+            iconImg.src = 'images/achievement.png';
+        };
+
+        const text = document.createElement('div');
+        text.className = 'notification-message';
+        text.textContent = message;
+
+        content.appendChild(iconImg);
+        content.appendChild(text);
+        toast.appendChild(content);
+    } else {
+        toast.textContent = message;
+    }
+
+    container.appendChild(toast);
+    window.setTimeout(() => {
+        toast.classList.add('fade-out');
+        window.setTimeout(() => toast.remove(), 350);
+    }, 2600);
+}
+
 function refreshGameUi() {
     updateLevelInfo();
+    awardAchievementIfNeeded();
+    renderAchievementsPanel();
     updateTimer();
     refreshCrateState();
     showCollection();
@@ -470,7 +783,53 @@ function awardFreeCratesIfNeeded() {
         freeCrateCount = loadFreeCrateCount() + cratesToAward;
         saveFreeCrateCount(freeCrateCount);
         localStorage.setItem('lastAwardedLevel', currentLevel);
+        for (let level = awardedLevel + 1; level <= currentLevel; level += 1) {
+            showToast(`Level up! Reached level ${level}! +1 free crate`, 'success');
+        }
         updateFreeCrateButton();
+    }
+}
+
+function awardAchievementIfNeeded() {
+    const state = loadAchievementsState();
+    const progress = getAchievementProgress();
+    let updated = false;
+
+    progress.forEach(achievement => {
+        const previous = state[achievement.id] || { completed: false, progress: 0 };
+        const previousProgress = previous.progress || 0;
+
+        if (achievement.current > previousProgress) {
+            state[achievement.id] = {
+                ...previous,
+                progress: achievement.current
+            };
+            updated = true;
+
+            if (!achievement.completed) {
+                showToast(`Progres: ${achievement.title} ${achievement.current}/${achievement.target}`, 'info', achievement.icon);
+            }
+        }
+
+        if (!previous.completed && achievement.completed) {
+            const rewardCrates = achievement.rewardCrates || 1;
+            state[achievement.id] = {
+                ...state[achievement.id],
+                completed: true,
+                completedAt: Date.now(),
+                progress: achievement.target
+            };
+            updated = true;
+            freeCrateCount = loadFreeCrateCount() + rewardCrates;
+            saveFreeCrateCount(freeCrateCount);
+            showToast(`Osiągnięcie zdobyte: ${achievement.title}! +${rewardCrates} free crate${rewardCrates === 1 ? '' : 's'}`, 'success', achievement.icon);
+        }
+    });
+
+    if (updated) {
+        saveAchievementsState(state);
+        updateFreeCrateButton();
+        renderAchievementsPanel();
     }
 }
 
@@ -489,6 +848,24 @@ function updateFreeCrateButton() {
             ? `You have ${freeCrateCount} free crates`
             : 'no free crates';
     }
+}
+
+function toggleAchievementsPanel() {
+    const modal = document.getElementById('achievementsModal');
+    if (!modal) return;
+    const isHidden = modal.classList.contains('hidden');
+
+    if (isHidden) {
+        renderAchievementsPanel();
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        return;
+    }
+
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
 }
 
 function renderRarityLegend(){
@@ -528,9 +905,9 @@ function updateEventStatus() {
     if (!status) return;
 
     const available = [];
-    if (summer) available.push('summer event');
-    if (legend) available.push('legends');
-    if (taco) available.push('taco');
+    if (summer) available.push('🍹 summer event');
+    if (legend) available.push('👑 legends');
+    if (taco) available.push('🌮 taco tuesday');
 
     status.textContent = available.length > 0
         ? `Available: ${available.join(' | ')}`
@@ -616,7 +993,7 @@ function drawPlush(options = {}) {
     if (freeCrateBtn) freeCrateBtn.disabled = true;
 
     const startTime = Date.now();
-    const revealDuration = 2800;
+    const revealDuration = 3000;
     const rollDuration = 2200;
     const resultEl = document.getElementById('result');
 
@@ -685,11 +1062,17 @@ function drawPlush(options = {}) {
     function revealResult() {
         const plush = drawWeightedPlush(availablePlushes);
         const variant = rollPlushVariant();
+        const baseXp = RARITY_XP[plush.rarity] || 0;
+        const variantXp = VARIANT_XP[variant] || 0;
+        const gainedXp = baseXp + variantXp;
         const variantBadge = variant === 'normal'
             ? ''
             : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : '🥇 Gold'}</div>`;
         const variantCardClass = variant === 'rainbow' ? 'rainbow-card' : variant === 'gold' ? 'gold-card' : '';
         const flashClass = variant === 'rainbow' ? ' flash-rainbow' : variant === 'gold' ? ' flash-gold' : ' flash-reveal';
+        const xpDetails = variantXp > 0
+            ? `<div class="xp-detail">${baseXp} base + ${variantXp} variant bonus</div>`
+            : `<div class="xp-detail">${baseXp} base XP</div>`;
 
         resultEl.innerHTML = `
             <div class="result-card ${variantCardClass}${flashClass}">
@@ -697,6 +1080,8 @@ function drawPlush(options = {}) {
                 ${variantBadge}
                 <h2>${plush.name}</h2>
                 <div class="rarity ${plush.rarity}">${plush.rarity} (${RARITY_PERCENTS[plush.rarity] || 0}%)</div>
+                <div class="xp-gain">+${gainedXp} XP</div>
+                ${xpDetails}
             </div>
         `;
 
@@ -705,7 +1090,6 @@ function drawPlush(options = {}) {
             window.setTimeout(() => flashCard.classList.remove('flash-reveal', 'flash-gold', 'flash-rainbow'), 900);
         }
 
-        const gainedXp = RARITY_XP[plush.rarity] || 0;
         const currentXp = loadPlayerXp();
         const newXp = currentXp + gainedXp;
         savePlayerXp(newXp);
@@ -729,8 +1113,11 @@ function drawPlush(options = {}) {
             });
         }
         saveCollection();
+        awardAchievementIfNeeded();
 
-        localStorage.setItem("lastDraw", Date.now());
+        if (!bypassCooldown) {
+            localStorage.setItem("lastDraw", Date.now());
+        }
         showCollection();
 
         window.setTimeout(() => {
@@ -824,8 +1211,28 @@ function initApp() {
         document.body.classList.remove('modal-open');
     }
 
+    const achievementsBtn = document.getElementById('achievementsBtn');
+    const achievementsPanel = document.getElementById('achievementsPanel');
+    const achievementsModal = document.getElementById('achievementsModal');
+    const closeAchievementsModalBtn = document.getElementById('closeAchievementsModal');
+
+    function closeAchievementsModal() {
+        if (!achievementsModal) return;
+        achievementsModal.classList.add('hidden');
+        achievementsModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+
     if (newsBtn) {
         newsBtn.addEventListener('click', openNewsModal);
+    }
+
+    if (achievementsBtn) {
+        achievementsBtn.addEventListener('click', toggleAchievementsPanel);
+    }
+
+    if (closeAchievementsModalBtn) {
+        closeAchievementsModalBtn.addEventListener('click', closeAchievementsModal);
     }
 
     if (closeNewsModalBtn) {
@@ -845,8 +1252,25 @@ function initApp() {
         });
     }
 
+    if (achievementsModal) {
+        achievementsModal.addEventListener('click', (event) => {
+            if (event.target.classList.contains('achievements-modal-backdrop')) {
+                closeAchievementsModal();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !achievementsModal.classList.contains('hidden')) {
+                closeAchievementsModal();
+            }
+        });
+    }
+
     if (newsPanel) {
         newsPanel.classList.add('hidden');
+    }
+
+    if (achievementsModal) {
+        achievementsModal.classList.add('hidden');
     }
 
     openNewsModal();
@@ -972,7 +1396,7 @@ function renderGallery() {
                 : group.startsWith('👑')
                     ? 'Legends event is available on Fridays only.'
                     : group.startsWith('🌮')
-                        ? 'Taco event is available on Thursdays only.'
+                        ? 'Taco event is available on Tuesday only.'
                     : '';
             return `
             <div class="gallery-section">
