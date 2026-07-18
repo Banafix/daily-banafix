@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Daily Banafix</title>
@@ -11,14 +11,13 @@
 <div id="levelInfo"></div>
 <div id="topControls">
     <button id="newsBtn">News</button>
-    <button id="darkModeBtn">Dark mode</button>
 </div>
 
 <div id="newsPanel" class="news-panel hidden">
     <div class="news-card">
         <h3>News #1</h3>
         <img src="images/news1.png" alt="News 1" class="news-image">
-        <p>Przykładowa informacja o nowym wydarzeniu lub aktualizacji w grze.</p>
+        <p>Sample information about a new event or update in the game.</p>
     </div>
 </div>
 
@@ -36,8 +35,21 @@
 <div id="newsModal" class="news-modal hidden" aria-hidden="true">
     <div class="news-modal-backdrop"></div>
     <div class="news-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="newsModalTitle">
-        <button id="closeNewsModal" class="news-modal-close" aria-label="Zamknij">×</button>
+        <button id="closeNewsModal" class="news-modal-close" aria-label="Close">×</button>
         <h2 id="newsModalTitle">Latest news 📢</h2>
+        <div class="news-card news-modal-card">
+            <h3>Banafix arena & remodels</h3>
+            <img src="images/update3.png" alt="Update 2.0" class="news-image">
+            <ul>
+                <li>New Banafix remodels. will be more in the future.</li>
+                <li>New Banafix arena with stage-based fights.</li>
+                <li>Select up to 4 Banafixes from your collection.</li>
+                <li>Daily arena uses are tracked per copy and reset at 1:00.</li>
+                <li>Enemy Banafixes now scale by rarity as the run goes on.</li>
+                <li>Battle status bars and ability effects are easier to read.</li>
+                <li>light mode was deleted.</li>
+            </ul>
+        </div>
         <div class="news-card news-modal-card">
             <h3>Achievements Update & Drop #2</h3>
             <img src="images/update2.png" alt="Update 1.2" class="news-image">
@@ -105,8 +117,57 @@
 
 <div id="eventStatus" style="margin:10px; color: var(--text);"></div>
 <div id="rarityLegend" style="margin:10px;"></div>
-<button id="achievementsBtn">🏆 Achievements</button>
+<div id="gameActionButtons">
+    <button id="achievementsBtn">🏆 Achievements</button>
+    <button id="battleGameBtn">⚔️ Arena Banafix</button>
+</div>
 <div id="gallery" style="margin:10px;"></div>
+
+<div id="battleGameModal" class="battle-modal hidden" aria-hidden="true">
+    <div class="battle-modal-backdrop"></div>
+    <div class="battle-modal-panel" role="dialog" aria-modal="true" aria-labelledby="battleGameTitle">
+        <button id="closeBattleGameModal" class="news-modal-close" aria-label="Close">×</button>
+        <h3 id="battleGameTitle">Arena Banafix</h3>
+
+        <div class="battle-guide">
+            <h4>How Arena Banafix works</h4>
+            <ul>
+                <li>Pick up to 4 Banafixes from your collection.</li>
+                <li>Only Banafixes with daily arena uses left can be selected.</li>
+                <li>Most fights have 3 enemies, sometimes 2 on early stages, and rarely 4.</li>
+                <li>Enemy Banafixes get better rarity as stages go up.</li>
+                <li>Clearing a stage gives XP, and the full run gives a final bonus at the end.</li>
+                <li>Daily arena uses reset at 1:00.</li>
+            </ul>
+        </div>
+
+        <div id="battleSelectionStep">
+            <p>Select from 1 to 4 Banafixes from your collection.</p>
+            <div id="battleSelectionCounter">Selected: 0 / 4</div>
+            <div id="battleSelectionGrid" class="battle-selection-grid"></div>
+            <button id="startBattleBtn" disabled>Start battle</button>
+        </div>
+
+        <div id="battleFightStep" class="hidden">
+            <div id="battleStatus" class="battle-status"></div>
+            <div class="battle-columns">
+                <div>
+                    <h4>Your team</h4>
+                    <div id="battleAllies" class="battle-fighter-list"></div>
+                </div>
+                <div>
+                    <h4>Enemies</h4>
+                    <div id="battleEnemies" class="battle-fighter-list"></div>
+                </div>
+            </div>
+            <div id="battleLog" class="battle-log"></div>
+            <div class="battle-actions">
+                <button id="battleNextTurnBtn">Next turn</button>
+                <button id="battleResetBtn">New battle</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="script.js"></script>
 
