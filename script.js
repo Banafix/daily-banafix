@@ -1040,17 +1040,25 @@ function awardAchievementIfNeeded() {
 function updateFreeCrateButton() {
     const btn = document.getElementById('freeCrateBtn');
     const countEl = document.getElementById('freeCrateCount');
+    const dailyCrateAvailable = !hasDrawnOnWarsawDate();
     freeCrateCount = loadFreeCrateCount();
 
     if (countEl) {
         countEl.textContent = freeCrateCount;
+        countEl.hidden = dailyCrateAvailable;
     }
 
     if (btn) {
-        btn.disabled = rolling || freeCrateCount <= 0;
-        btn.title = freeCrateCount > 0
-            ? `You have ${freeCrateCount} free crates`
-            : 'no free crates';
+        const label = dailyCrateAvailable ? 'Open daily crate ' : 'Open free crate ';
+        if (btn.firstChild && btn.firstChild.textContent !== label) {
+            btn.firstChild.textContent = label;
+        }
+        btn.disabled = rolling || (!dailyCrateAvailable && freeCrateCount <= 0);
+        btn.title = dailyCrateAvailable
+            ? 'Your daily crate is ready'
+            : freeCrateCount > 0
+                ? `You have ${freeCrateCount} free crates`
+                : 'No free crates available';
     }
 }
 
@@ -1157,7 +1165,11 @@ function loadSavedDrawResults() {
         return null;
     }
 
-    if (!Array.isArray(savedResults.cards) || Number(savedResults.expiresAt) <= Date.now()) {
+    const drawnAt = Number(savedResults.drawnAt);
+    const isFromAnotherDay = Number.isFinite(drawnAt)
+        && drawnAt > 0
+        && getWarsawDateKey(drawnAt) !== getWarsawDateKey();
+    if (!Array.isArray(savedResults.cards) || Number(savedResults.expiresAt) <= Date.now() || isFromAnotherDay) {
         localStorage.removeItem('lastDrawResults');
         return null;
     }
@@ -1251,6 +1263,7 @@ function drawPlush(options = {}) {
     if (freeCrateBtn) freeCrateBtn.disabled = true;
 
     const startTime = Date.now();
+    const resultsExpireAt = getNextWarsawMidnight(startTime);
     const revealDuration = 3000;
     const drawCount = 3;
     const resultEl = document.getElementById('result');
@@ -1372,14 +1385,13 @@ function drawPlush(options = {}) {
         showDrawXpToast(gainedXp);
         awardAchievementIfNeeded();
 
-        let resultsExpireAt;
         if (!bypassCooldown) {
             const drawTime = Date.now();
             localStorage.setItem('lastDraw', drawTime);
         }
-        resultsExpireAt = getNextWarsawMidnight();
         localStorage.setItem('lastDrawResults', JSON.stringify({
             cards: drawnResults.map(({ plush, variant }) => ({ name: plush.name, variant })),
+            drawnAt: startTime,
             expiresAt: resultsExpireAt
         }));
         showCollection();
@@ -1423,6 +1435,15 @@ function openFreeCrate() {
     saveFreeCrateCount(freeCrateCount);
     updateFreeCrateButton();
     drawPlush({ bypassCooldown: true });
+}
+
+function openAvailableCrate() {
+    if (hasDrawnOnWarsawDate()) {
+        openFreeCrate();
+        return;
+    }
+
+    drawPlush();
 }
 
 function rollPlushVariant() {
@@ -1795,7 +1816,7 @@ function initApp() {
     openNewsModal();
 
     const freeCrateBtn = document.getElementById('freeCrateBtn');
-    if (freeCrateBtn) freeCrateBtn.addEventListener('click', openFreeCrate);
+    if (freeCrateBtn) freeCrateBtn.addEventListener('click', openAvailableCrate);
 
     updateEventStatus();
     updateLevelInfo();
@@ -2066,6 +2087,7 @@ function updateTimer() {
 setInterval(() => {
     updateTimer();
     refreshCrateState();
+    updateFreeCrateButton();
 }, 1000);
 updateTimer();
 refreshCrateState();
