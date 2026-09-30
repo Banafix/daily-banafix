@@ -1,4 +1,58 @@
-const DRAW_TIME = 24 * 60 * 60 * 1000; // 24 godziny
+const DRAW_TIME_ZONE = 'Europe/Warsaw';
+const DRAW_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+    timeZone: DRAW_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+});
+
+function getWarsawDateTimeParts(timestamp = Date.now()) {
+    const parts = new Map(DRAW_DATE_TIME_FORMATTER.formatToParts(new Date(timestamp)).map(part => [part.type, part.value]));
+    return {
+        year: Number(parts.get('year')),
+        month: Number(parts.get('month')),
+        day: Number(parts.get('day')),
+        hour: Number(parts.get('hour')),
+        minute: Number(parts.get('minute')),
+        second: Number(parts.get('second'))
+    };
+}
+
+function getWarsawDateKey(timestamp = Date.now()) {
+    const { year, month, day } = getWarsawDateTimeParts(timestamp);
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function hasDrawnOnWarsawDate(lastDraw = localStorage.getItem('lastDraw'), now = Date.now()) {
+    const lastDrawTime = Number(lastDraw);
+    return Number.isFinite(lastDrawTime)
+        && lastDrawTime > 0
+        && getWarsawDateKey(lastDrawTime) === getWarsawDateKey(now);
+}
+
+function getWarsawUtcOffset(timestamp) {
+    const roundedTimestamp = Math.floor(timestamp / 1000) * 1000;
+    const { year, month, day, hour, minute, second } = getWarsawDateTimeParts(roundedTimestamp);
+    return Date.UTC(year, month - 1, day, hour, minute, second) - roundedTimestamp;
+}
+
+function getNextWarsawMidnight(timestamp = Date.now()) {
+    const { year, month, day } = getWarsawDateTimeParts(timestamp);
+    const nextDateAtUtc = Date.UTC(year, month - 1, day + 1);
+    let midnight = nextDateAtUtc;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const adjustedMidnight = nextDateAtUtc - getWarsawUtcOffset(midnight);
+        if (adjustedMidnight === midnight) break;
+        midnight = adjustedMidnight;
+    }
+
+    return midnight;
+}
 
 const plushies = [
 
@@ -332,7 +386,7 @@ const plushies = [
 },
 
 {
-    name: "Pinata Banafix",
+    name: "pinata Banafix",
     image: "images/pinata.png",
     rarity: "epic",
     collection: "🌮 taco tuesday"
@@ -1071,8 +1125,7 @@ function getAvailablePlushes() {
 function getDrawCrateImage() {
     const lastDraw = localStorage.getItem('lastDraw');
     if (!lastDraw) return 'images/crateopen.png';
-    const diff = Date.now() - Number(lastDraw);
-    if (diff < DRAW_TIME) return 'images/crateimage.png';
+    if (hasDrawnOnWarsawDate(lastDraw)) return 'images/crateimage.png';
     return 'images/crateopen.png';
 }
 
@@ -1181,13 +1234,9 @@ function drawPlush(options = {}) {
     const { bypassCooldown = false } = options;
     const lastDraw = localStorage.getItem("lastDraw");
 
-    if (!bypassCooldown && lastDraw) {
-        const diff = Date.now() - Number(lastDraw);
-
-        if (diff < DRAW_TIME) {
-            alert("Today you have already drawn Banafix!");
-            return;
-        }
+    if (!bypassCooldown && hasDrawnOnWarsawDate(lastDraw)) {
+        alert("Today you have already drawn Banafix!");
+        return;
     }
 
     const availablePlushes = getAvailablePlushes();
@@ -1327,12 +1376,8 @@ function drawPlush(options = {}) {
         if (!bypassCooldown) {
             const drawTime = Date.now();
             localStorage.setItem('lastDraw', drawTime);
-            resultsExpireAt = drawTime + DRAW_TIME;
-        } else {
-            const lastDrawTime = Number(localStorage.getItem('lastDraw')) || 0;
-            const nextDailyReset = lastDrawTime + DRAW_TIME;
-            resultsExpireAt = nextDailyReset > Date.now() ? nextDailyReset : Date.now() + DRAW_TIME;
         }
+        resultsExpireAt = getNextWarsawMidnight();
         localStorage.setItem('lastDrawResults', JSON.stringify({
             cards: drawnResults.map(({ plush, variant }) => ({ name: plush.name, variant })),
             expiresAt: resultsExpireAt
@@ -1999,12 +2044,12 @@ function updateTimer() {
     const timer = document.getElementById("timer");
     const lastDraw = localStorage.getItem("lastDraw");
 
-    if (!lastDraw) {
+    if (!lastDraw || !hasDrawnOnWarsawDate(lastDraw)) {
         timer.innerHTML = "you can draw!";
         return;
     }
 
-    const left = DRAW_TIME - (Date.now() - Number(lastDraw));
+    const left = getNextWarsawMidnight() - Date.now();
 
     if (left <= 0) {
         timer.innerHTML = "you can draw!";
@@ -2015,7 +2060,7 @@ function updateTimer() {
     const m = Math.floor((left % 3600000) / 60000);
     const s = Math.floor((left % 60000) / 1000);
 
-    timer.innerHTML = `next draw in ${h}h ${m}m ${s}s`;
+    timer.innerHTML = `next draw at 00:00 Poland time (in ${h}h ${m}m ${s}s)`;
 }
 
 setInterval(() => {
