@@ -270,35 +270,35 @@ const plushies = [
     name: "cake Banafix",
     image: "images/cake.png",
     rarity: "common",
-    collection: "🍹 summer event"
+    collection: "🍹 Sunburst"
 },
 
 {
     name: "beach Banafix",
     image: "images/beach.png",
     rarity: "rare",
-    collection: "🍹 summer event"
+    collection: "🍹 Sunburst"
 },
 
 {
     name: "orange juice Banafix",
     image: "images/orange.png",
     rarity: "epic",
-    collection: "🍹 summer event"
+    collection: "🍹 Sunburst"
 },
 
 {
     name: "monster Banafix",
     image: "images/monster.png",
     rarity: "epic",
-    collection: "🍹 summer event"
+    collection: "🍹 Sunburst"
 },
 
 {
     name: "swimsuit Banafix",
     image: "images/swimsuit.png",
     rarity: "rare",
-    collection: "🍹 summer event"
+    collection: "🍹 Sunburst"
 },
 
 {
@@ -437,6 +437,15 @@ const RARITY_XP = {
     secret: 200,
 };
 
+const RARITY_BLINK_REWARDS = {
+    common: 1,
+    rare: 2,
+    epic: 4,
+    legendary: 10,
+    secret: 20
+};
+const LEVEL_BLINK_REWARD = 2;
+
 const VARIANT_XP = {
     gold: 40,
     rainbow: 60,
@@ -446,6 +455,89 @@ const VARIANT_XP = {
 const VARIANT_CHANCES = {
     rainbow: 2,
     gold: 7
+};
+
+const COLLECTION_UPGRADE_CONFIG = {
+    gold: { label: 'Gold chance', bonus: 2 },
+    rainbow: { label: 'Rainbow chance', bonus: 0.5 }
+};
+const MAX_COLLECTION_UPGRADE_LEVEL = 3;
+const COLLECTION_UPGRADE_BLINK_COST = { baseCost: 10, costStep: 8 };
+const COLLECTION_XP_BOOST_PER_LEVEL = 5;
+const COLLECTION_XP_BOOST_BLINK_COST = { baseCost: 12, costStep: 8 };
+
+const COLLECTION_UPGRADE_DEFINITIONS = {
+    'general-gold': {
+        key: 'general-gold',
+        collectionKey: 'general',
+        variantKey: 'gold',
+        label: 'General',
+        icon: '📦',
+        upgradeLabel: 'Gold chance'
+    },
+    'general-rainbow': {
+        key: 'general-rainbow',
+        collectionKey: 'general',
+        variantKey: 'rainbow',
+        label: 'General',
+        icon: '📦',
+        upgradeLabel: 'Rainbow chance'
+    },
+    'legends-gold': {
+        key: 'legends-gold',
+        collectionKey: 'legends',
+        variantKey: 'gold',
+        label: 'Legends',
+        icon: '👑',
+        upgradeLabel: 'Gold chance'
+    },
+    'legends-rainbow': {
+        key: 'legends-rainbow',
+        collectionKey: 'legends',
+        variantKey: 'rainbow',
+        label: 'Legends',
+        icon: '👑',
+        upgradeLabel: 'Rainbow chance'
+    },
+    'summer-gold': {
+        key: 'summer-gold',
+        collectionKey: 'summer',
+        variantKey: 'gold',
+        label: 'Sunburst',
+        icon: '🍹',
+        upgradeLabel: 'Gold chance'
+    },
+    'summer-rainbow': {
+        key: 'summer-rainbow',
+        collectionKey: 'summer',
+        variantKey: 'rainbow',
+        label: 'Sunburst',
+        icon: '🍹',
+        upgradeLabel: 'Rainbow chance'
+    },
+    'taco-gold': {
+        key: 'taco-gold',
+        collectionKey: 'taco',
+        variantKey: 'gold',
+        label: 'Taco Tuesday',
+        icon: '🌮',
+        upgradeLabel: 'Gold chance'
+    },
+    'taco-rainbow': {
+        key: 'taco-rainbow',
+        collectionKey: 'taco',
+        variantKey: 'rainbow',
+        label: 'Taco Tuesday',
+        icon: '🌮',
+        upgradeLabel: 'Rainbow chance'
+    }
+};
+
+const COLLECTION_BADGE_IMAGES = {
+    general: 'images/General.png',
+    legends: 'images/Legends.png',
+    summer: 'images/Sunburst.png',
+    taco: 'images/TacoTuesday.png'
 };
 
 const LEVEL_BADGES = [
@@ -581,6 +673,21 @@ function loadPlayerXp() {
 
 function savePlayerXp(xp) {
     localStorage.setItem('playerXp', xp);
+}
+
+function loadPlayerBlinks() {
+    return Math.max(0, Number(localStorage.getItem('blinks')) || 0);
+}
+
+function savePlayerBlinks(blinks) {
+    localStorage.setItem('blinks', Math.max(0, blinks));
+}
+
+function updateBlinkBalance() {
+    const balance = loadPlayerBlinks().toLocaleString();
+    document.querySelectorAll('[data-blink-count]').forEach(element => {
+        element.textContent = balance;
+    });
 }
 
 
@@ -732,10 +839,16 @@ function updateLevelInfo() {
     const badge = getLevelBadge(level);
     const info = ensureLevelInfo();
     const description = `Level ${level} · ${badge.name} · XP: ${currentLevelXp}/${nextLevelXp}`;
-    info.textContent = badge.emoji;
+    const badgeIcon = info.querySelector('.game-menu-action-icon');
+    if (badgeIcon) {
+        badgeIcon.textContent = badge.emoji;
+        info.className = `level-indicator game-menu-action badge-${badge.id}`;
+    } else {
+        info.textContent = badge.emoji;
+        info.className = `level-indicator badge-${badge.id}`;
+    }
     info.title = description;
     info.setAttribute('aria-label', description);
-    info.className = `level-indicator badge-${badge.id}`;
 }
 
 function renderLevelProgressModal() {
@@ -751,8 +864,9 @@ function renderLevelProgressModal() {
     const currentEl = document.getElementById('levelProgressCurrent');
     const remainingEl = document.getElementById('levelProgressRemaining');
     const rewardTitleEl = document.getElementById('levelRewardTitle');
+    const rewardDescriptionEl = document.getElementById('levelRewardDescription');
 
-    if (!badgeEl || !rankEl || !levelEl || !progressTrack || !progressFill || !currentEl || !remainingEl || !rewardTitleEl) return;
+    if (!badgeEl || !rankEl || !levelEl || !progressTrack || !progressFill || !currentEl || !remainingEl || !rewardTitleEl || !rewardDescriptionEl) return;
 
     badgeEl.textContent = badge.emoji;
     rankEl.textContent = badge.name;
@@ -762,6 +876,7 @@ function renderLevelProgressModal() {
     currentEl.textContent = `${currentLevelXp} / ${nextLevelXp} XP`;
     remainingEl.textContent = `${nextLevelXp - currentLevelXp} XP to next level`;
     rewardTitleEl.textContent = `Level ${level + 1} reward`;
+    rewardDescriptionEl.textContent = `+1 free crate · +${LEVEL_BLINK_REWARD} Blink`;
 }
 
 function getAchievementProgress() {
@@ -862,6 +977,32 @@ function getPlushDrawChance(plushName) {
     return totalWeight > 0 ? (weights[plushIndex] / totalWeight) * 100 : 0;
 }
 
+function getPlushVariantChance(plushName, variant) {
+    const plush = plushies.find(item => item.name === plushName);
+    if (!plush) return null;
+
+    const baseChance = getPlushDrawChance(plushName);
+    if (baseChance === null) return null;
+
+    const collectionKey = getUpgradeCollectionKey(plush.collection || '');
+    const chances = getCollectionVariantChanceInfo(collectionKey);
+    const variantChance = variant === 'gold'
+        ? chances.goldChance
+        : variant === 'rainbow'
+            ? chances.rainbowChance
+            : chances.normalChance;
+
+    return (baseChance * variantChance) / 100;
+}
+
+function formatChanceAsOneIn(chance) {
+    if (chance === null || !Number.isFinite(chance) || chance <= 0) return 'Impossible';
+    if (chance >= 100) return 'Always';
+
+    const reciprocal = 1 / (chance / 100);
+    return `1 in ${Math.round(reciprocal)}`;
+}
+
 function loadCollection() {
     const raw = JSON.parse(localStorage.getItem('collection')) || [];
     return raw.map(item => ({
@@ -881,11 +1022,13 @@ function saveCollection() {
 const GAME_SAVE_KEYS = [
     'collection',
     'playerXp',
+    'blinks',
     'freeCrateCount',
     'lastAwardedLevel',
     'achievementsState',
     'lastDraw',
-    'lastDrawResults'
+    'lastDrawResults',
+    'collectionUpgrades'
 ];
 
 function readGameSaveValue(key, fallback) {
@@ -894,27 +1037,108 @@ function readGameSaveValue(key, fallback) {
     return JSON.parse(raw);
 }
 
+function encodeSavePayload(payload) {
+    const data = payload && payload.data ? payload.data : payload;
+    const compact = {
+        f: 'daily-banafix-save',
+        v: 3,
+        d: [
+            (data.collection || []).map(item => [item.name, item.image || '', item.rarity || 'common', item.count || 1, item.goldCount || 0, item.rainbowCount || 0]),
+            Number.isFinite(data.playerXp) ? data.playerXp : 0,
+            Number.isFinite(data.freeCrateCount) ? data.freeCrateCount : 0,
+            Number.isFinite(data.lastAwardedLevel) ? data.lastAwardedLevel : 0,
+            Object.entries(data.achievementsState || {}),
+            data.lastDraw ?? null,
+            data.lastDrawResults ? [
+                data.lastDrawResults.cards.map(card => [card.name, card.variant]),
+                data.lastDrawResults.drawnAt,
+                data.lastDrawResults.expiresAt
+            ] : null,
+            data.collectionUpgrades && typeof data.collectionUpgrades === 'object'
+                ? Object.entries(data.collectionUpgrades)
+                : [],
+            Number.isFinite(data.blinks) ? data.blinks : 0
+        ]
+    };
+    return `dbs:${JSON.stringify(compact)}`;
+}
+
+function decodeSavePayload(value) {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) {
+        throw new Error('The save text is empty.');
+    }
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        return JSON.parse(trimmed);
+    }
+    if (!trimmed.startsWith('dbs:')) {
+        throw new Error('This is not a supported Daily Banafix save.');
+    }
+
+    const compact = JSON.parse(trimmed.slice(4));
+    if (!compact || compact.f !== 'daily-banafix-save' || (compact.v !== 2 && compact.v !== 3) || !Array.isArray(compact.d) || compact.d.length < 7) {
+        throw new Error('The save data is invalid.');
+    }
+
+    const [collection, playerXp, freeCrateCount, lastAwardedLevel, achievementsState, lastDraw, lastDrawResults, rawUpgrades, blinks] = compact.d;
+    return {
+        format: 'daily-banafix-save',
+        version: 3,
+        exportedAt: new Date().toISOString(),
+        data: {
+            collection: Array.isArray(collection)
+                ? collection.map(([name, image, rarity, count, goldCount, rainbowCount]) => ({
+                    name,
+                    image,
+                    rarity,
+                    count,
+                    goldCount,
+                    rainbowCount
+                }))
+                : [],
+            playerXp: Number(playerXp) || 0,
+            freeCrateCount: Number(freeCrateCount) || 0,
+            lastAwardedLevel: Number(lastAwardedLevel) || 0,
+            achievementsState: Array.isArray(achievementsState) ? Object.fromEntries(achievementsState) : {},
+            lastDraw: lastDraw ?? null,
+            lastDrawResults: lastDrawResults && Array.isArray(lastDrawResults)
+                ? {
+                    cards: lastDrawResults[0].map(([name, variant]) => ({ name, variant })),
+                    drawnAt: Number(lastDrawResults[1]) || 0,
+                    expiresAt: Number(lastDrawResults[2]) || 0
+                }
+                : null,
+            collectionUpgrades: Array.isArray(rawUpgrades)
+                ? Object.fromEntries(rawUpgrades.map(([key, value]) => [key, Number(value) || 0]))
+                : {},
+            blinks: Number(blinks) || 0
+        }
+    };
+}
+
 function createGameSavePayload() {
     const data = {
         collection: readGameSaveValue('collection', []),
         playerXp: readGameSaveValue('playerXp', 0),
+        blinks: readGameSaveValue('blinks', 0),
         freeCrateCount: readGameSaveValue('freeCrateCount', 0),
         lastAwardedLevel: readGameSaveValue('lastAwardedLevel', 0),
         achievementsState: readGameSaveValue('achievementsState', {}),
         lastDraw: readGameSaveValue('lastDraw', null),
-        lastDrawResults: readGameSaveValue('lastDrawResults', null)
+        lastDrawResults: readGameSaveValue('lastDrawResults', null),
+        collectionUpgrades: readGameSaveValue('collectionUpgrades', {})
     };
 
     return {
         format: 'daily-banafix-save',
-        version: 1,
+        version: 3,
         exportedAt: new Date().toISOString(),
         data
     };
 }
 
 function validateGameSavePayload(payload) {
-    if (!payload || payload.format !== 'daily-banafix-save' || payload.version !== 1) {
+    if (!payload || payload.format !== 'daily-banafix-save' || ![1, 2, 3].includes(payload.version)) {
         throw new Error('This is not a supported Daily Banafix save.');
     }
 
@@ -928,6 +1152,10 @@ function validateGameSavePayload(payload) {
     if (!Number.isFinite(data.playerXp) || data.playerXp < 0) {
         throw new Error('The XP value is invalid.');
     }
+    if (data.blinks === undefined) data.blinks = 0;
+    if (!Number.isFinite(data.blinks) || data.blinks < 0) {
+        throw new Error('The Blink value is invalid.');
+    }
     for (const key of ['freeCrateCount', 'lastAwardedLevel']) {
         if (!Number.isFinite(data[key]) || data[key] < 0) {
             throw new Error(`The ${key} value is invalid.`);
@@ -935,6 +1163,9 @@ function validateGameSavePayload(payload) {
     }
     if (!data.achievementsState || typeof data.achievementsState !== 'object' || Array.isArray(data.achievementsState)) {
         throw new Error('The achievements data is invalid.');
+    }
+    if (!data.collectionUpgrades || typeof data.collectionUpgrades !== 'object' || Array.isArray(data.collectionUpgrades)) {
+        throw new Error('The collection upgrades data is invalid.');
     }
     if (data.lastDraw !== null && !Number.isFinite(data.lastDraw)) {
         throw new Error('The draw timer data is invalid.');
@@ -978,9 +1209,11 @@ function awardFreeCratesIfNeeded() {
         const cratesToAward = currentLevel - awardedLevel;
         freeCrateCount = loadFreeCrateCount() + cratesToAward;
         saveFreeCrateCount(freeCrateCount);
+        savePlayerBlinks(loadPlayerBlinks() + (cratesToAward * LEVEL_BLINK_REWARD));
+        updateBlinkBalance();
         localStorage.setItem('lastAwardedLevel', currentLevel);
         for (let level = awardedLevel + 1; level <= currentLevel; level += 1) {
-            showToast(`Level up! Reached level ${level}! +1 free crate`, 'success');
+            showToast(`Level up! Reached level ${level}! +1 free crate · +${LEVEL_BLINK_REWARD} Blink`, 'success');
         }
         updateFreeCrateButton();
     }
@@ -1080,7 +1313,7 @@ function toggleAchievementsPanel() {
     document.body.classList.remove('modal-open');
 }
 
-function isSummerEventActive(date = new Date()) {
+function isSunburstEventActive(date = new Date()) {
     const month = date.getMonth(); // 0 = January
     return month === 6 || month === 7; // July or August
 }
@@ -1093,6 +1326,76 @@ function isTacoEventActive(date = new Date()) {
     return date.getDay() === 2; // Tuesdays only
 }
 
+function getUpcomingWeeklyEvents(limit = 4, timestamp = Date.now()) {
+    const { year, month, day } = getWarsawDateTimeParts(timestamp);
+    const weekdayEvents = new Map([
+        [2, { name: 'Taco Tuesday', icon: '🌮' }],
+        [5, { name: 'Legends', icon: '👑' }]
+    ]);
+    const events = [];
+
+    for (let dayOffset = 1; events.length < limit; dayOffset += 1) {
+        const date = new Date(Date.UTC(year, month - 1, day + dayOffset));
+        const scheduledEvent = weekdayEvents.get(date.getUTCDay());
+        if (scheduledEvent) events.push({ ...scheduledEvent, date });
+    }
+
+    return events;
+}
+
+function getUpcomingSunburstSeasons(limit = 2, timestamp = Date.now()) {
+    const { year, month, day } = getWarsawDateTimeParts(timestamp);
+    const today = Date.UTC(year, month - 1, day);
+    const nextStartYear = today < Date.UTC(year, 6, 1) ? year : year + 1;
+
+    return Array.from({ length: limit }, (_, index) => {
+        const seasonYear = nextStartYear + index;
+        return {
+            start: new Date(Date.UTC(seasonYear, 6, 1)),
+            end: new Date(Date.UTC(seasonYear, 7, 31))
+        };
+    });
+}
+
+function formatCalendarDate(date, options) {
+    return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: 'UTC' }).format(date);
+}
+
+function renderCalendarContent() {
+    const weeklyEvents = getUpcomingWeeklyEvents();
+    const sunburstSeasons = getUpcomingSunburstSeasons();
+    return `
+        <section class="calendar-section">
+            <h3>Next 4 events</h3>
+            <div class="calendar-event-list">
+                ${weeklyEvents.map(event => `
+                    <div class="calendar-event-row">
+                        <div class="calendar-event-label">
+                            <span aria-hidden="true">${event.icon}</span>
+                            <div><strong>${event.name}</strong><small>Weekly</small></div>
+                        </div>
+                        <time datetime="${event.date.toISOString().slice(0, 10)}">${formatCalendarDate(event.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</time>
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+        <section class="calendar-section">
+            <h3>Next 2 yearly events</h3>
+            <div class="calendar-event-list">
+                ${sunburstSeasons.map(season => `
+                    <div class="calendar-event-row">
+                        <div class="calendar-event-label">
+                            <span aria-hidden="true">🍹</span>
+                            <div><strong>Sunburst</strong><small>Yearly</small></div>
+                        </div>
+                        <time datetime="${season.start.toISOString().slice(0, 10)}">${formatCalendarDate(season.start, { day: 'numeric', month: 'short' })} – ${formatCalendarDate(season.end, { day: 'numeric', month: 'short', year: 'numeric' })}</time>
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function isGeneralCollection(plush) {
     return plush.collection && plush.collection.startsWith('📦');
 }
@@ -1103,13 +1406,13 @@ function isEventCollection(plush) {
 
 function updateEventStatus() {
     const status = document.getElementById('eventStatus');
-    const summer = isSummerEventActive();
+    const sunburst = isSunburstEventActive();
     const legend = isLegendEventActive();
     const taco = isTacoEventActive();
     if (!status) return;
 
     const available = [];
-    if (summer) available.push('🍹 summer event');
+    if (sunburst) available.push('🍹 Sunburst');
     if (legend) available.push('👑 legends');
     if (taco) available.push('🌮 taco tuesday');
 
@@ -1119,15 +1422,58 @@ function updateEventStatus() {
 }
 
 function getAvailablePlushes() {
-    const summer = isSummerEventActive();
+    const sunburst = isSunburstEventActive();
     const legend = isLegendEventActive();
     const taco = isTacoEventActive();
     return plushies.filter(p =>
         isGeneralCollection(p)
-        || (p.collection && p.collection.startsWith('🍹') && summer)
+        || (p.collection && p.collection.startsWith('🍹') && sunburst)
         || (p.collection && p.collection.startsWith('👑') && legend)
         || (p.collection && p.collection.startsWith('🌮') && taco)
     );
+}
+
+function openDrawCollectionPicker(bypassCooldown = false) {
+    const modal = document.getElementById('drawCollectionModal');
+    const options = document.getElementById('drawCollectionOptions');
+    if (!modal || !options) return;
+
+    const availableKeys = new Set(getAvailablePlushes().map(plush => getUpgradeCollectionKey(plush.collection || '')));
+    const seenKeys = new Set();
+    const availableGroups = Object.values(COLLECTION_UPGRADE_DEFINITIONS).filter(info => {
+        if (seenKeys.has(info.collectionKey)) return false;
+        seenKeys.add(info.collectionKey);
+        return availableKeys.has(info.collectionKey);
+    });
+
+    options.innerHTML = `
+        <div class="upgrade-collections draw-collection-options${availableGroups.length === 1 ? ' single' : ''}">
+            ${availableGroups.map(info => `
+                <button type="button" class="upgrade-collection-button" data-draw-collection="${info.collectionKey}" aria-label="Draw from ${info.label}">
+                    <img class="collection-badge" src="${COLLECTION_BADGE_IMAGES[info.collectionKey]}" alt="${info.label} collection">
+                </button>
+            `).join('')}
+        </div>
+    `;
+    modal.dataset.bypassCooldown = String(bypassCooldown);
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+}
+
+function closeDrawCollectionPicker() {
+    const modal = document.getElementById('drawCollectionModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+}
+
+function selectDrawCollection(collectionKey) {
+    const modal = document.getElementById('drawCollectionModal');
+    const bypassCooldown = modal?.dataset.bypassCooldown === 'true';
+    closeDrawCollectionPicker();
+    drawPlush({ bypassCooldown, collectionKey });
 }
 
 function getDrawCrateImage() {
@@ -1140,17 +1486,32 @@ function getDrawCrateImage() {
 function renderCrateState() {
     const resultEl = document.getElementById('result');
     if (!resultEl) return;
-    const crateImage = getDrawCrateImage();
+
     resultEl.innerHTML = `
-        <div class="result-card">
-            <img src="${crateImage}" alt="Crate" class="draw-crate" id="crateImage">
+        <div class="draw-cards-stage draw-preview-stage">
+            ${Array.from({ length: 3 }, (_, index) => `
+                <div class="draw-flip-card draw-preview-card" data-preview-index="${index}" role="button" tabindex="0" aria-label="Open Banafix card ${index + 1}">
+                    <div class="draw-flip-inner">
+                        <div class="draw-card-side draw-card-back">
+                            <span class="draw-card-back-mark">?</span>
+                            <span class="draw-card-back-label">Banafix</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
         </div>
     `;
-    const crateImg = document.getElementById('crateImage');
-    if (crateImg) {
-        crateImg.addEventListener('click', drawPlush);
-        crateImg.style.cursor = 'pointer';
-    }
+
+    resultEl.querySelectorAll('.draw-preview-card').forEach(card => {
+        const activate = () => drawPlush();
+        card.addEventListener('click', activate);
+        card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                activate();
+            }
+        });
+    });
 }
 
 function loadSavedDrawResults() {
@@ -1187,8 +1548,27 @@ function loadSavedDrawResults() {
     return drawnResults;
 }
 
-function renderDrawCards(resultEl, drawnResults, revealAll = false) {
-    resultEl.innerHTML = `
+function getDrawRewards(plush, variant) {
+    const collectionKey = getUpgradeCollectionKey(plush.collection || '');
+    const xpBoost = getCollectionUpgradeLevel(collectionKey, 'xp') * COLLECTION_XP_BOOST_PER_LEVEL;
+    return {
+        xp: (RARITY_XP[plush.rarity] || 0) + (VARIANT_XP[variant] || 0) + xpBoost,
+        blinks: RARITY_BLINK_REWARDS[plush.rarity] || 0
+    };
+}
+
+function buildDrawRewardMarkup(plush, variant, hidden = false) {
+    const rewards = getDrawRewards(plush, variant);
+    return `
+        <div class="draw-card-rewards"${hidden ? ' hidden' : ''}>
+            <span class="draw-card-reward xp">+${rewards.xp} XP</span>
+            <span class="draw-card-reward blink">+${rewards.blinks} Blink</span>
+        </div>
+    `;
+}
+
+function buildDrawCardsMarkup(drawnResults, revealAll = false) {
+    return `
         <div class="draw-cards-stage">
             ${drawnResults.map(({ plush, variant }, index) => {
                 const variantCardClass = variant === 'rainbow' ? 'rainbow-card' : variant === 'gold' ? 'gold-card' : '';
@@ -1196,26 +1576,42 @@ function renderDrawCards(resultEl, drawnResults, revealAll = false) {
                 const variantBadge = variant === 'normal'
                     ? ''
                     : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : '🥇 Gold'}</div>`;
+                const rewards = getDrawRewards(plush, variant);
                 return `
-                <div class="draw-flip-card${revealAll ? ' revealed' : ''}" data-card-index="${index}" role="img" aria-label="${revealAll ? `${plush.name}, ${plush.rarity}` : `Face-down Banafix card ${index + 1}`}" >
-                    <div class="draw-flip-inner">
-                        <div class="draw-card-side draw-card-back" aria-hidden="${revealAll ? 'true' : 'false'}">
-                            <span class="draw-card-back-mark">?</span>
-                            <span class="draw-card-back-label">Banafix</span>
-                        </div>
-                        <div class="draw-card-side draw-card-front gallery-card draw-result-card ${variantCardClass}" aria-hidden="${revealAll ? 'false' : 'true'}">
-                            <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
-                            ${variantBadge}
-                            <div class="gallery-name">${plush.name}</div>
-                            <div class="rarity ${plush.rarity}">${plush.rarity}</div>
-                            <span class="draw-card-flash ${flashVariant}" aria-hidden="true"></span>
+                <div class="draw-card-result-item">
+                    <div class="draw-flip-card${revealAll ? ' revealed' : ''}" data-card-index="${index}" role="img" aria-label="${revealAll ? `${plush.name}, ${plush.rarity}, +${rewards.xp} XP, +${rewards.blinks} Blink` : `Face-down Banafix card ${index + 1}`}" >
+                        <div class="draw-flip-inner">
+                            <div class="draw-card-side draw-card-back" aria-hidden="${revealAll ? 'true' : 'false'}">
+                                <span class="draw-card-back-mark">?</span>
+                                <span class="draw-card-back-label">Banafix</span>
+                            </div>
+                            <div class="draw-card-side draw-card-front gallery-card draw-result-card ${variantCardClass}" aria-hidden="${revealAll ? 'false' : 'true'}">
+                                <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
+                                ${variantBadge}
+                                <div class="gallery-name">${plush.name}</div>
+                                <div class="rarity ${plush.rarity}">${plush.rarity}</div>
+                                <span class="draw-card-flash ${flashVariant}" aria-hidden="true"></span>
+                            </div>
                         </div>
                     </div>
+                    ${buildDrawRewardMarkup(plush, variant, !revealAll)}
                 </div>
             `;
             }).join('')}
         </div>
     `;
+}
+
+function renderDrawCards(resultEl, drawnResults, revealAll = false) {
+    resultEl.innerHTML = buildDrawCardsMarkup(drawnResults, revealAll);
+}
+
+function pushDrawHistorySet(drawnResults) {
+    const previousSets = drawHistory.slice(-3);
+    drawHistory = [...previousSets, drawnResults];
+    if (drawHistory.length > 4) {
+        drawHistory.shift();
+    }
 }
 
 function refreshCrateState() {
@@ -1243,7 +1639,7 @@ function refreshCrateState() {
 function drawPlush(options = {}) {
     if (rolling) return;
 
-    const { bypassCooldown = false } = options;
+    const { bypassCooldown = false, collectionKey } = options;
     const lastDraw = localStorage.getItem("lastDraw");
 
     if (!bypassCooldown && hasDrawnOnWarsawDate(lastDraw)) {
@@ -1251,11 +1647,30 @@ function drawPlush(options = {}) {
         return;
     }
 
-    const availablePlushes = getAvailablePlushes();
-    if (availablePlushes.length === 0) {
-        alert('No Banafixes available to draw.');
+    if (!collectionKey) {
+        openDrawCollectionPicker(bypassCooldown);
         return;
     }
+
+    const availablePlushes = getAvailablePlushes().filter(plush =>
+        getUpgradeCollectionKey(plush.collection || '') === collectionKey
+    );
+    if (availablePlushes.length === 0) {
+        alert('This collection is not currently available to draw.');
+        return;
+    }
+
+    if (bypassCooldown) {
+        const count = loadFreeCrateCount();
+        if (count <= 0) {
+            alert('You do not have any free crates.');
+            return;
+        }
+        freeCrateCount = count - 1;
+        saveFreeCrateCount(freeCrateCount);
+        updateFreeCrateButton();
+    }
+
     const rollingPlushes = getGalleryOrderedPlushes(availablePlushes);
 
     rolling = true;
@@ -1274,15 +1689,19 @@ function drawPlush(options = {}) {
 
     function showCrateOpenState() {
         resultEl.innerHTML = `
-            <div class="result-card">
-                <img src="images/crateopen.png" alt="Crate open" class="draw-crate draw-crate-open" id="crateImage">
+            <div class="draw-cards-stage draw-preview-stage">
+                ${Array.from({ length: 3 }, (_, index) => `
+                    <div class="draw-flip-card draw-preview-card is-opening" data-preview-index="${index}" role="button" tabindex="0" aria-label="Open Banafix card ${index + 1}">
+                        <div class="draw-flip-inner">
+                            <div class="draw-card-side draw-card-back">
+                                <span class="draw-card-back-mark">?</span>
+                                <span class="draw-card-back-label">Banafix</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         `;
-        const crateImg = document.getElementById('crateImage');
-        if (crateImg) {
-            crateImg.addEventListener('click', drawPlush);
-            crateImg.style.cursor = 'pointer';
-        }
     }
 
     function animateOpening() {
@@ -1298,10 +1717,13 @@ function drawPlush(options = {}) {
 
     function animateRoll() {
         showCrateOpenState();
-        const drawnResults = Array.from({ length: drawCount }, () => ({
-            plush: drawWeightedPlush(availablePlushes),
-            variant: rollPlushVariant()
-        }));
+        const drawnResults = Array.from({ length: drawCount }, () => {
+            const plush = drawWeightedPlush(availablePlushes);
+            return {
+                plush,
+                variant: rollPlushVariant(plush.collection)
+            };
+        });
 
         resultEl.innerHTML = `
             <div class="draw-cards-stage">
@@ -1312,20 +1734,23 @@ function drawPlush(options = {}) {
                         ? ''
                         : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : '🥇 Gold'}</div>`;
                     return `
-                    <div class="draw-flip-card" data-card-index="${index}" role="img" aria-label="Face-down Banafix card ${index + 1}">
-                        <div class="draw-flip-inner">
-                            <div class="draw-card-side draw-card-back" aria-hidden="false">
-                                <span class="draw-card-back-mark">?</span>
-                                <span class="draw-card-back-label">Banafix</span>
-                            </div>
-                            <div class="draw-card-side draw-card-front gallery-card draw-result-card ${variantCardClass}" aria-hidden="true">
-                                <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
-                                ${variantBadge}
-                                <div class="gallery-name">${plush.name}</div>
-                                <div class="rarity ${plush.rarity}">${plush.rarity}</div>
-                                <span class="draw-card-flash ${flashVariant}" aria-hidden="true"></span>
+                        <div class="draw-card-result-item">
+                            <div class="draw-flip-card" data-card-index="${index}" role="img" aria-label="Face-down Banafix card ${index + 1}">
+                                <div class="draw-flip-inner">
+                                    <div class="draw-card-side draw-card-back" aria-hidden="false">
+                                        <span class="draw-card-back-mark">?</span>
+                                        <span class="draw-card-back-label">Banafix</span>
+                                    </div>
+                                    <div class="draw-card-side draw-card-front gallery-card draw-result-card ${variantCardClass}" aria-hidden="true">
+                                        <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
+                                        ${variantBadge}
+                                        <div class="gallery-name">${plush.name}</div>
+                                        <div class="rarity ${plush.rarity}">${plush.rarity}</div>
+                                        <span class="draw-card-flash ${flashVariant}" aria-hidden="true"></span>
+                                    </div>
                             </div>
                         </div>
+                            ${buildDrawRewardMarkup(plush, variant, true)}
                     </div>
                 `;
                 }).join('')}
@@ -1333,16 +1758,18 @@ function drawPlush(options = {}) {
         `;
 
         const flipDuration = 850;
-        const pauseAfterReveal = 2000;
+        const pauseAfterReveal = 500;
         const flipDelay = flipDuration + pauseAfterReveal;
         drawnResults.forEach((drawResult, index) => {
             window.setTimeout(() => {
                 const card = resultEl.querySelector(`[data-card-index="${index}"]`);
                 if (!card) return;
                 card.classList.add('revealed');
-                card.setAttribute('aria-label', `${drawResult.plush.name}, ${drawResult.plush.rarity}`);
+                const rewards = getDrawRewards(drawResult.plush, drawResult.variant);
+                card.setAttribute('aria-label', `${drawResult.plush.name}, ${drawResult.plush.rarity}, +${rewards.xp} XP, +${rewards.blinks} Blink`);
                 card.querySelector('.draw-card-back')?.setAttribute('aria-hidden', 'true');
                 card.querySelector('.draw-card-front')?.setAttribute('aria-hidden', 'false');
+                card.parentElement.querySelector('.draw-card-rewards')?.removeAttribute('hidden');
                 window.setTimeout(() => card.querySelector('.draw-card-flash')?.classList.add('active'), flipDuration);
 
                 if (index === drawnResults.length - 1) {
@@ -1354,10 +1781,11 @@ function drawPlush(options = {}) {
 
     function revealResults(drawnResults) {
         let gainedXp = 0;
+        let gainedBlinks = 0;
         drawnResults.forEach(({ plush, variant }) => {
-            const baseXp = RARITY_XP[plush.rarity] || 0;
-            const variantXp = VARIANT_XP[variant] || 0;
-            gainedXp += baseXp + variantXp;
+            const rewards = getDrawRewards(plush, variant);
+            gainedXp += rewards.xp;
+            gainedBlinks += rewards.blinks;
 
             const existing = collection.find(item => item.name === plush.name);
             if (existing) {
@@ -1381,8 +1809,10 @@ function drawPlush(options = {}) {
         saveCollection();
         const currentXp = loadPlayerXp();
         savePlayerXp(currentXp + gainedXp);
+        savePlayerBlinks(loadPlayerBlinks() + gainedBlinks);
         updateLevelInfo();
-        showDrawXpToast(gainedXp);
+        updateBlinkBalance();
+        showDrawXpToast(gainedXp, gainedBlinks);
         awardAchievementIfNeeded();
 
         if (!bypassCooldown) {
@@ -1394,6 +1824,7 @@ function drawPlush(options = {}) {
             drawnAt: startTime,
             expiresAt: resultsExpireAt
         }));
+        renderDrawCards(resultEl, drawnResults, true);
         showCollection();
 
         window.setTimeout(() => {
@@ -1407,12 +1838,12 @@ function drawPlush(options = {}) {
     animateOpening();
 }
 
-function showDrawXpToast(gainedXp) {
+function showDrawXpToast(gainedXp, gainedBlinks) {
     const toast = document.createElement('div');
     toast.className = 'draw-xp-toast';
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
-    toast.textContent = `+${gainedXp} XP`;
+    toast.textContent = `+${gainedXp} XP · +${gainedBlinks} Blink`;
     document.body.appendChild(toast);
 
     window.requestAnimationFrame(() => toast.classList.add('visible'));
@@ -1431,10 +1862,7 @@ function openFreeCrate() {
         return;
     }
 
-    freeCrateCount = count - 1;
-    saveFreeCrateCount(freeCrateCount);
-    updateFreeCrateButton();
-    drawPlush({ bypassCooldown: true });
+    openDrawCollectionPicker(true);
 }
 
 function openAvailableCrate() {
@@ -1446,10 +1874,77 @@ function openAvailableCrate() {
     drawPlush();
 }
 
-function rollPlushVariant() {
+function getUpgradeCollectionKey(collectionName = '') {
+    if (collectionName.startsWith('👑')) return 'legends';
+    if (collectionName.startsWith('🍹')) return 'summer';
+    if (collectionName.startsWith('🌮')) return 'taco';
+    return 'general';
+}
+
+function getCollectionUpgradeState() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem('collectionUpgrades') || '{}');
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return {};
+        }
+
+        const normalized = { ...parsed };
+        Object.entries(COLLECTION_UPGRADE_DEFINITIONS).forEach(([key, info]) => {
+            if (!normalized[key] && typeof normalized[info.collectionKey] === 'number') {
+                normalized[key] = normalized[info.collectionKey];
+            }
+        });
+        return normalized;
+    } catch {
+        return {};
+    }
+}
+
+function saveCollectionUpgrades(state) {
+    localStorage.setItem('collectionUpgrades', JSON.stringify(state));
+}
+
+function getCollectionUpgradeLevel(collectionKey, variantKey) {
+    const state = getCollectionUpgradeState();
+    const key = `${collectionKey}-${variantKey}`;
+    const value = state[key] ?? 0;
+    return Math.max(0, Math.min(MAX_COLLECTION_UPGRADE_LEVEL, Math.floor(Number(value) || 0)));
+}
+
+function getCollectionBlinkUpgradeCost(collectionKey) {
+    const combinedLevel = Math.min(
+        getCollectionUpgradeLevel(collectionKey, 'gold'),
+        getCollectionUpgradeLevel(collectionKey, 'rainbow')
+    );
+    return COLLECTION_UPGRADE_BLINK_COST.baseCost + (combinedLevel * COLLECTION_UPGRADE_BLINK_COST.costStep);
+}
+
+function getCollectionXpBoostBlinkCost(collectionKey) {
+    const level = getCollectionUpgradeLevel(collectionKey, 'xp');
+    return COLLECTION_XP_BOOST_BLINK_COST.baseCost + (level * COLLECTION_XP_BOOST_BLINK_COST.costStep);
+}
+
+function getCollectionVariantChanceInfo(collectionKey = 'general') {
+    const goldLevel = getCollectionUpgradeLevel(collectionKey, 'gold');
+    const rainbowLevel = getCollectionUpgradeLevel(collectionKey, 'rainbow');
+    const goldChance = Math.min(100, VARIANT_CHANCES.gold + (goldLevel * COLLECTION_UPGRADE_CONFIG.gold.bonus));
+    const rainbowChance = Math.min(100, VARIANT_CHANCES.rainbow + (rainbowLevel * COLLECTION_UPGRADE_CONFIG.rainbow.bonus));
+    const normalChance = Math.max(0, 100 - goldChance - rainbowChance);
+    return {
+        goldChance,
+        rainbowChance,
+        normalChance,
+        goldBonus: goldLevel * COLLECTION_UPGRADE_CONFIG.gold.bonus,
+        rainbowBonus: rainbowLevel * COLLECTION_UPGRADE_CONFIG.rainbow.bonus
+    };
+}
+
+function rollPlushVariant(collectionName = 'general') {
+    const key = getUpgradeCollectionKey(collectionName);
+    const { goldChance, rainbowChance } = getCollectionVariantChanceInfo(key);
     const roll = Math.random() * 100;
-    if (roll < VARIANT_CHANCES.rainbow) return 'rainbow';
-    if (roll < VARIANT_CHANCES.rainbow + VARIANT_CHANCES.gold) return 'gold';
+    if (roll < rainbowChance) return 'rainbow';
+    if (roll < rainbowChance + goldChance) return 'gold';
     return 'normal';
 }
 
@@ -1487,11 +1982,15 @@ function showCollection(){
 
 function initApp() {
     updateLevelInfo();
+    updateBlinkBalance();
     renderInitialCrate();
 
     const levelInfoBtn = document.getElementById('levelInfo');
     const levelProgressModal = document.getElementById('levelProgressModal');
     const closeLevelProgressModalBtn = document.getElementById('closeLevelProgressModal');
+    const drawCollectionModal = document.getElementById('drawCollectionModal');
+    const drawCollectionOptions = document.getElementById('drawCollectionOptions');
+    const closeDrawCollectionModalBtn = document.getElementById('closeDrawCollectionModal');
 
     function openLevelProgressModal() {
         if (!levelProgressModal) return;
@@ -1510,14 +2009,41 @@ function initApp() {
         document.body.classList.remove('modal-open');
     }
 
+    const gameMenuBtn = document.getElementById('gameMenuBtn');
+    const gameMenuModal = document.getElementById('gameMenuModal');
+    const closeGameMenuModalBtn = document.getElementById('closeGameMenuModal');
+
+    function openGameMenu() {
+        if (!gameMenuModal) return;
+        gameMenuModal.classList.remove('hidden');
+        gameMenuModal.setAttribute('aria-hidden', 'false');
+        gameMenuBtn?.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeGameMenu() {
+        if (!gameMenuModal) return;
+        gameMenuModal.classList.add('hidden');
+        gameMenuModal.setAttribute('aria-hidden', 'true');
+        gameMenuBtn?.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('modal-open');
+    }
+
     const newsBtn = document.getElementById('newsBtn');
     const newsModal = document.getElementById('newsModal');
     const closeNewsModalBtn = document.getElementById('closeNewsModal');
+    const quickActionsBtn = document.getElementById('quickActionsBtn');
+    const quickActionsMenu = document.getElementById('quickActionsMenu');
+    const quickActionsHost = document.getElementById('topControls');
     const saveBtn = document.getElementById('saveBtn');
     const saveModal = document.getElementById('saveModal');
     const closeSaveModalBtn = document.getElementById('closeSaveModal');
     const saveExportText = document.getElementById('saveExportText');
     const copySaveBtn = document.getElementById('copySaveBtn');
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    const upgradeModal = document.getElementById('upgradeModal');
+    const closeUpgradeModalBtn = document.getElementById('closeUpgradeModal');
+    const upgradeList = document.getElementById('upgradeList');
     const saveImportText = document.getElementById('saveImportText');
     const importSaveBtn = document.getElementById('importSaveBtn');
     const saveStatus = document.getElementById('saveStatus');
@@ -1525,9 +2051,26 @@ function initApp() {
     const chancesModal = document.getElementById('chancesModal');
     const closeChancesModalBtn = document.getElementById('closeChancesModal');
     const chancesContent = document.getElementById('chancesContent');
+    const calendarBtn = document.getElementById('calendarBtn');
+    const calendarModal = document.getElementById('calendarModal');
+    const closeCalendarModalBtn = document.getElementById('closeCalendarModal');
+    const calendarContent = document.getElementById('calendarContent');
     const catalogBtn = document.getElementById('catalogBtn');
     const catalogModal = document.getElementById('catalogModal');
     const closeCatalogModalBtn = document.getElementById('closeCatalogModal');
+
+    function closeQuickActions() {
+        if (!quickActionsMenu) return;
+        quickActionsMenu.classList.add('hidden');
+        quickActionsBtn?.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleQuickActions() {
+        if (!quickActionsMenu) return;
+        const isOpening = quickActionsMenu.classList.contains('hidden');
+        quickActionsMenu.classList.toggle('hidden', !isOpening);
+        quickActionsBtn?.setAttribute('aria-expanded', String(isOpening));
+    }
 
     function openNewsModal() {
         if (!newsModal) return;
@@ -1552,7 +2095,7 @@ function initApp() {
     function openSaveModal() {
         if (!saveModal || !saveExportText) return;
         try {
-            saveExportText.value = JSON.stringify(createGameSavePayload(), null, 2);
+            saveExportText.value = encodeSavePayload(createGameSavePayload());
             setSaveStatus('');
         } catch {
             setSaveStatus('Could not create save data.', 'error');
@@ -1585,7 +2128,7 @@ function initApp() {
     function importGameSave() {
         if (!saveImportText) return;
         try {
-            const payload = JSON.parse(saveImportText.value);
+            const payload = decodeSavePayload(saveImportText.value);
             const data = validateGameSavePayload(payload);
             applyGameSave(data);
             setSaveStatus('Save imported. Reloading game…', 'success');
@@ -1619,21 +2162,38 @@ function initApp() {
                 </div>
             </section>
             <section class="chances-section">
-                <h3>XP rewards</h3>
-                <p class="chances-note">Rarity XP plus variant bonus for each draw.</p>
-                <div class="chances-list">
-                    ${Object.entries(RARITY_XP).map(([rarity, xp]) => `
-                        <div class="chances-row">
-                            <span class="rarity ${rarity}">${rarity} base</span>
-                            <strong>+${xp} XP</strong>
+                <h3>Rewards</h3>
+                <div class="chances-reward-columns">
+                    <div class="chances-reward-column">
+                        <h4 class="chances-subheading">XP rewards</h4>
+                        <p class="chances-note">Rarity XP plus variant bonus for each draw.</p>
+                        <div class="chances-list">
+                            ${Object.entries(RARITY_XP).map(([rarity, xp]) => `
+                                <div class="chances-row">
+                                    <span class="rarity ${rarity}">${rarity} base</span>
+                                    <strong>+${xp} XP</strong>
+                                </div>
+                            `).join('')}
+                            ${Object.entries(VARIANT_XP).map(([variant, xp]) => `
+                                <div class="chances-row">
+                                    <span>${variant === 'gold' ? '🥇 ' : variant === 'rainbow' ? '🌈 ' : ''}${variant} bonus</span>
+                                    <strong>+${xp} XP</strong>
+                                </div>
+                            `).join('')}
                         </div>
-                    `).join('')}
-                    ${Object.entries(VARIANT_XP).map(([variant, xp]) => `
-                        <div class="chances-row">
-                            <span>${variant === 'gold' ? '🥇 ' : variant === 'rainbow' ? '🌈 ' : ''}${variant} bonus</span>
-                            <strong>+${xp} XP</strong>
+                    </div>
+                    <div class="chances-reward-column">
+                        <h4 class="chances-subheading">Blink rewards</h4>
+                        <p class="chances-note">Earned per Banafix by rarity, plus ${LEVEL_BLINK_REWARD} Blink per level.</p>
+                        <div class="chances-list">
+                            ${Object.entries(RARITY_BLINK_REWARDS).map(([rarity, blinks]) => `
+                                <div class="chances-row">
+                                    <span class="rarity ${rarity}">${rarity}</span>
+                                    <strong>+${blinks} Blink</strong>
+                                </div>
+                            `).join('')}
                         </div>
-                    `).join('')}
+                    </div>
                 </div>
             </section>
         `;
@@ -1646,6 +2206,210 @@ function initApp() {
         if (!chancesModal) return;
         chancesModal.classList.add('hidden');
         chancesModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+
+    function openCalendarModal() {
+        if (!calendarModal || !calendarContent) return;
+        calendarContent.innerHTML = renderCalendarContent();
+        calendarModal.classList.remove('hidden');
+        calendarModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeCalendarModal() {
+        if (!calendarModal) return;
+        calendarModal.classList.add('hidden');
+        calendarModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+
+    let selectedUpgradeCollectionKey = null;
+
+    function renderUpgradeModal() {
+        if (!upgradeList) return;
+
+        const groupedCollections = Object.values(COLLECTION_UPGRADE_DEFINITIONS).reduce((groups, info) => {
+            if (!groups[info.collectionKey]) {
+                groups[info.collectionKey] = {
+                    icon: info.icon,
+                    label: info.label,
+                    badgeSrc: COLLECTION_BADGE_IMAGES[info.collectionKey] || '',
+                    items: []
+                };
+            }
+            groups[info.collectionKey].items.push(info);
+            return groups;
+        }, {});
+
+        if (!selectedUpgradeCollectionKey) {
+            upgradeList.innerHTML = `
+                <div class="upgrade-collections">
+                    ${Object.entries(groupedCollections).map(([collectionKey, group]) => `
+                        <button type="button" class="upgrade-collection-button" data-upgrade-collection="${collectionKey}" aria-label="Show ${group.label} upgrades">
+                            ${group.badgeSrc
+                                ? `<img class="collection-badge" src="${group.badgeSrc}" alt="${group.label} collection">`
+                                : `<span class="upgrade-collection-icon" aria-hidden="true">${group.icon}</span><span>${group.label}</span>`}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            upgradeList.querySelectorAll('[data-upgrade-collection]').forEach(button => {
+                button.addEventListener('click', () => {
+                    selectedUpgradeCollectionKey = button.getAttribute('data-upgrade-collection');
+                    renderUpgradeModal();
+                });
+            });
+            return;
+        }
+
+        const selectedGroup = groupedCollections[selectedUpgradeCollectionKey];
+        if (!selectedGroup) {
+            selectedUpgradeCollectionKey = null;
+            renderUpgradeModal();
+            return;
+        }
+
+        upgradeList.innerHTML = Object.entries(groupedCollections)
+            .filter(([collectionKey]) => collectionKey === selectedUpgradeCollectionKey)
+            .map(([collectionKey, group]) => {
+            const goldInfo = group.items.find(info => info.variantKey === 'gold');
+            const rainbowInfo = group.items.find(info => info.variantKey === 'rainbow');
+            const goldLevel = getCollectionUpgradeLevel(collectionKey, 'gold');
+            const rainbowLevel = getCollectionUpgradeLevel(collectionKey, 'rainbow');
+            const { goldChance, rainbowChance } = getCollectionVariantChanceInfo(collectionKey);
+            const levelLabel = goldLevel === rainbowLevel
+                ? `Lv. ${goldLevel}`
+                : `🥇 ${goldLevel} · 🌈 ${rainbowLevel}`;
+            const canUpgradeGold = goldLevel < MAX_COLLECTION_UPGRADE_LEVEL;
+            const canUpgradeRainbow = rainbowLevel < MAX_COLLECTION_UPGRADE_LEVEL;
+            const canUpgrade = canUpgradeGold || canUpgradeRainbow;
+            const totalCost = canUpgrade ? getCollectionBlinkUpgradeCost(collectionKey) : 0;
+            const canAfford = canUpgrade && loadPlayerBlinks() >= totalCost;
+            const xpBoostLevel = getCollectionUpgradeLevel(collectionKey, 'xp');
+            const canUpgradeXp = xpBoostLevel < MAX_COLLECTION_UPGRADE_LEVEL;
+            const xpBoostCost = canUpgradeXp ? getCollectionXpBoostBlinkCost(collectionKey) : 0;
+            const canAffordXp = canUpgradeXp && loadPlayerBlinks() >= xpBoostCost;
+            const rows = `
+                <div class="upgrade-row">
+                    <div class="upgrade-copy">
+                        <div class="upgrade-title">Gold + Rainbow chance</div>
+                        <div class="upgrade-current-chances">
+                            <span class="upgrade-current-label">Current chance</span>
+                            <span class="upgrade-current-value gold">🥇 ${goldChance}%</span>
+                            <span class="upgrade-current-value rainbow">🌈 ${rainbowChance}%</span>
+                        </div>
+                        <div class="upgrade-bonuses">
+                            <span class="upgrade-bonus gold">${canUpgradeGold ? `🥇 Gold +${COLLECTION_UPGRADE_CONFIG.gold.bonus}% / level` : '🥇 Gold MAX'}</span>
+                            <span class="upgrade-bonus rainbow">${canUpgradeRainbow ? `🌈 Rainbow +${COLLECTION_UPGRADE_CONFIG.rainbow.bonus}% / level` : '🌈 Rainbow MAX'}</span>
+                        </div>
+                    </div>
+                    <div class="upgrade-meta">
+                        <span class="upgrade-level">${levelLabel}</span>
+                        <span class="upgrade-cost">${canUpgrade ? `${totalCost} Blink` : 'MAX'}</span>
+                        <button type="button" class="upgrade-purchase" data-combined-upgrade="${collectionKey}" ${canAfford ? '' : 'disabled'}>${canUpgrade ? 'Upgrade' : 'Max level'}</button>
+                    </div>
+                </div>
+                <div class="upgrade-row xp-boost-upgrade-row">
+                    <div class="upgrade-copy">
+                        <div class="upgrade-title">XP Boost</div>
+                        <div class="upgrade-bonuses">
+                            <span class="upgrade-bonus xp">+${COLLECTION_XP_BOOST_PER_LEVEL} XP / Banafix / level</span>
+                        </div>
+                    </div>
+                    <div class="upgrade-meta">
+                        <span class="upgrade-level">Lv. ${xpBoostLevel}</span>
+                        <span class="upgrade-cost">${canUpgradeXp ? `${xpBoostCost} Blink` : 'MAX'}</span>
+                        <button type="button" class="upgrade-purchase" data-xp-boost-upgrade="${collectionKey}" ${canAffordXp ? '' : 'disabled'}>${canUpgradeXp ? 'Upgrade' : 'Max level'}</button>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <section class="upgrade-group">
+                    <button type="button" class="upgrade-back" data-upgrade-back>← Collections</button>
+                    <div class="upgrade-group-header">
+                        <span>${group.icon}</span>
+                        <span>${group.label}</span>
+                    </div>
+                    <div class="upgrade-group-body">
+                        ${rows}
+                    </div>
+                </section>
+            `;
+        }).join('');
+
+        upgradeList.querySelector('[data-upgrade-back]')?.addEventListener('click', () => {
+            selectedUpgradeCollectionKey = null;
+            renderUpgradeModal();
+        });
+
+        upgradeList.querySelectorAll('[data-combined-upgrade]').forEach(button => {
+            const collectionKey = button.getAttribute('data-combined-upgrade');
+            if (!collectionKey) return;
+            button.addEventListener('click', () => {
+                const goldKey = `${collectionKey}-gold`;
+                const rainbowKey = `${collectionKey}-rainbow`;
+                const goldLevel = getCollectionUpgradeLevel(collectionKey, 'gold');
+                const rainbowLevel = getCollectionUpgradeLevel(collectionKey, 'rainbow');
+                const canUpgradeGold = goldLevel < MAX_COLLECTION_UPGRADE_LEVEL;
+                const canUpgradeRainbow = rainbowLevel < MAX_COLLECTION_UPGRADE_LEVEL;
+                if (!canUpgradeGold && !canUpgradeRainbow) return;
+                const totalCost = getCollectionBlinkUpgradeCost(collectionKey);
+                const currentBlinks = loadPlayerBlinks();
+                if (currentBlinks < totalCost) {
+                    showToast('Not enough Blink for this upgrade.', 'error');
+                    return;
+                }
+
+                const state = getCollectionUpgradeState();
+                if (canUpgradeGold) state[goldKey] = goldLevel + 1;
+                if (canUpgradeRainbow) state[rainbowKey] = rainbowLevel + 1;
+                saveCollectionUpgrades(state);
+                savePlayerBlinks(currentBlinks - totalCost);
+                updateBlinkBalance();
+                renderUpgradeModal();
+                showToast(`${selectedGroup.label} Gold + Rainbow chance upgraded.`, 'success');
+            });
+        });
+
+        upgradeList.querySelectorAll('[data-xp-boost-upgrade]').forEach(button => {
+            const collectionKey = button.getAttribute('data-xp-boost-upgrade');
+            if (!collectionKey) return;
+            button.addEventListener('click', () => {
+                const level = getCollectionUpgradeLevel(collectionKey, 'xp');
+                if (level >= MAX_COLLECTION_UPGRADE_LEVEL) return;
+                const cost = getCollectionXpBoostBlinkCost(collectionKey);
+                const currentBlinks = loadPlayerBlinks();
+                if (currentBlinks < cost) {
+                    showToast('Not enough Blink for this upgrade.', 'error');
+                    return;
+                }
+
+                const state = getCollectionUpgradeState();
+                state[`${collectionKey}-xp`] = level + 1;
+                saveCollectionUpgrades(state);
+                savePlayerBlinks(currentBlinks - cost);
+                updateBlinkBalance();
+                renderUpgradeModal();
+                showToast(`${selectedGroup.label} XP Boost upgraded to Lv. ${level + 1}.`, 'success');
+            });
+        });
+    }
+
+    function openUpgradeModal() {
+        if (!upgradeModal) return;
+        selectedUpgradeCollectionKey = null;
+        renderUpgradeModal();
+        upgradeModal.classList.remove('hidden');
+        upgradeModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeUpgradeModal() {
+        if (!upgradeModal) return;
+        upgradeModal.classList.add('hidden');
+        upgradeModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('modal-open');
     }
 
@@ -1675,8 +2439,47 @@ function initApp() {
         document.body.classList.remove('modal-open');
     }
 
+    if (gameMenuBtn) {
+        gameMenuBtn.addEventListener('click', openGameMenu);
+    }
+
+    if (closeGameMenuModalBtn) {
+        closeGameMenuModalBtn.addEventListener('click', closeGameMenu);
+    }
+
+    if (gameMenuModal) {
+        gameMenuModal.addEventListener('click', (event) => {
+            if (event.target.classList.contains('news-modal-backdrop')) {
+                closeGameMenu();
+            } else if (event.target.closest('.game-menu-action')) {
+                closeGameMenu();
+            }
+        }, true);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !gameMenuModal.classList.contains('hidden')) {
+                closeGameMenu();
+            }
+        });
+    }
+
     if (newsBtn) {
         newsBtn.addEventListener('click', openNewsModal);
+    }
+
+    if (quickActionsBtn) {
+        quickActionsBtn.addEventListener('click', toggleQuickActions);
+    }
+
+    if (quickActionsMenu) {
+        quickActionsMenu.addEventListener('click', (event) => {
+            if (event.target.closest('[role="menuitem"]')) closeQuickActions();
+        }, true);
+        document.addEventListener('click', (event) => {
+            if (!quickActionsHost?.contains(event.target)) closeQuickActions();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeQuickActions();
+        });
     }
 
     if (saveBtn) {
@@ -1691,8 +2494,20 @@ function initApp() {
         chancesBtn.addEventListener('click', openChancesModal);
     }
 
+    if (calendarBtn) {
+        calendarBtn.addEventListener('click', openCalendarModal);
+    }
+
     if (catalogBtn) {
         catalogBtn.addEventListener('click', openCatalogModal);
+    }
+
+    if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', openUpgradeModal);
+    }
+
+    if (closeUpgradeModalBtn) {
+        closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
     }
 
     if (achievementsBtn) {
@@ -1723,12 +2538,48 @@ function initApp() {
         closeLevelProgressModalBtn.addEventListener('click', closeLevelProgressModal);
     }
 
+    if (closeDrawCollectionModalBtn) {
+        closeDrawCollectionModalBtn.addEventListener('click', closeDrawCollectionPicker);
+    }
+
+    if (drawCollectionOptions) {
+        drawCollectionOptions.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-draw-collection]');
+            if (button) selectDrawCollection(button.getAttribute('data-draw-collection'));
+        });
+    }
+
+    if (drawCollectionModal) {
+        drawCollectionModal.addEventListener('click', (event) => {
+            if (event.target.classList.contains('news-modal-backdrop')) {
+                closeDrawCollectionPicker();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !drawCollectionModal.classList.contains('hidden')) {
+                closeDrawCollectionPicker();
+            }
+        });
+    }
+
     if (closeChancesModalBtn) {
         closeChancesModalBtn.addEventListener('click', closeChancesModal);
     }
 
+    if (closeCalendarModalBtn) {
+        closeCalendarModalBtn.addEventListener('click', closeCalendarModal);
+    }
+
     if (closeCatalogModalBtn) {
         closeCatalogModalBtn.addEventListener('click', closeCatalogModal);
+    }
+
+    if (upgradeModal) {
+        upgradeModal.addEventListener('click', (event) => {
+            if (event.target.classList.contains('news-modal-backdrop')) {
+                closeUpgradeModal();
+            }
+        });
     }
 
     if (newsModal) {
@@ -1779,6 +2630,19 @@ function initApp() {
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && !chancesModal.classList.contains('hidden')) {
                 closeChancesModal();
+            }
+        });
+    }
+
+    if (calendarModal) {
+        calendarModal.addEventListener('click', (event) => {
+            if (event.target.classList.contains('news-modal-backdrop')) {
+                closeCalendarModal();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !calendarModal.classList.contains('hidden')) {
+                closeCalendarModal();
             }
         });
     }
@@ -1878,7 +2742,7 @@ function renderGallery() {
     const collectedNames = new Set(collection.map(item => item.name));
     const general = sortGalleryPlushes(plushies.filter(isGeneralCollection));
     const eventPlushes = sortGalleryPlushes(plushies.filter(isEventCollection));
-    const summer = isSummerEventActive();
+    const sunburst = isSunburstEventActive();
     const legend = isLegendEventActive();
     const taco = isTacoEventActive();
     const eventGroups = eventPlushes.reduce((groups, plush) => {
@@ -1892,7 +2756,7 @@ function renderGallery() {
         const goldCount = collection.find(item => item.name === plush.name)?.goldCount || 0;
         const rainbowCount = collection.find(item => item.name === plush.name)?.rainbowCount || 0;
         const safeName = plush.name.replace(/'/g, "\\'");
-        const clickAttr = hidden ? '' : `onclick="showPlushFullscreen('${safeName}')"`;
+        const clickAttr = `onclick="showPlushFullscreen('${safeName}')"`;
         const variantClass = rainbowCount > 0 ? ' rainbow-card' : goldCount > 0 ? ' gold-card' : '';
         return `
             <div class="gallery-card${variantClass}${hidden ? ' hidden-card disabled-card' : ''}${extraClasses ? ' ' + extraClasses : ''}" ${clickAttr}>
@@ -1932,22 +2796,32 @@ function renderGallery() {
         </div>
         ${Object.keys(eventGroups).map((group, index) => {
             const sectionKey = `event-${index}`;
-            const enabledGroup = group.startsWith('🍹') ? summer : group.startsWith('👑') ? legend :group.startsWith('🌮') ? taco : false;
+            const enabledGroup = group.startsWith('🍹') ? sunburst : group.startsWith('👑') ? legend :group.startsWith('🌮') ? taco : false;
             const groupPlushes = eventGroups[group];
             const progress = collectionProgress(groupPlushes);
+            const collectionBadge = group.startsWith('👑')
+                ? { src: 'images/Legends.png', alt: 'Legends collection' }
+                : group.startsWith('🍹')
+                    ? { src: 'images/Sunburst.png', alt: 'Sunburst collection' }
+                    : group.startsWith('🌮')
+                        ? { src: 'images/TacoTuesday.png', alt: 'Taco Tuesday collection' }
+                        : null;
             const note = group.startsWith('🍹')
-                ? 'Summer event is available from July 1 to August 31.'
+                ? 'Sunburst event is available from July 1 to August 31.'
                 : group.startsWith('👑')
                     ? 'Legends event is available on Fridays only.'
                     : group.startsWith('🌮')
                         ? 'Taco event is available on Tuesday only.'
                     : '';
+                const headerContent = collectionBadge
+                    ? `<img src="${collectionBadge.src}" alt="${collectionBadge.alt}"><span>${progress.collected}/${progress.total}</span><span class="collection-arrow" aria-hidden="true">▾</span>`
+                : `<span>${group} ${enabledGroup ? '(available now)' : '(locked)'} (${progress.collected}/${progress.total})</span><span class="collection-arrow" aria-hidden="true">▾</span>`;
+                const badgeHeaderClass = collectionBadge ? ' general-collection-title' : '';
             return `
             <div class="gallery-section">
                 <h4 class="gallery-section-heading">
-                    <button class="collection-toggle" type="button" data-collection-toggle data-collection-key="${sectionKey}" data-collection-label="${group}" aria-expanded="true" aria-label="Collapse ${group}">
-                        <span>${group} ${enabledGroup ? '(available now)' : '(locked)'} (${progress.collected}/${progress.total})</span>
-                        <span class="collection-arrow" aria-hidden="true">▾</span>
+                        <button class="collection-toggle${badgeHeaderClass}" type="button" data-collection-toggle data-collection-key="${sectionKey}" data-collection-label="${group}" aria-expanded="true" aria-label="Collapse ${group}">
+                        ${headerContent}
                     </button>
                 </h4>
                 <div class="gallery-section-content">
@@ -2008,7 +2882,13 @@ function showPlushFullscreen(plushName) {
     const collectedCount = collectedItem?.count || 0;
     const goldCount = collectedItem?.goldCount || 0;
     const rainbowCount = collectedItem?.rainbowCount || 0;
-    const drawChance = getPlushDrawChance(plush.name);
+    const activeVariant = rainbowCount > 0 ? 'rainbow' : goldCount > 0 ? 'gold' : 'normal';
+    const drawChance = getPlushVariantChance(plush.name, activeVariant);
+    const chanceLabel = activeVariant === 'rainbow'
+        ? 'Rainbow variant chance'
+        : activeVariant === 'gold'
+            ? 'Gold variant chance'
+            : 'Normal variant chance';
     hideFullscreenPlush();
 
     const fullscreenVariantClass = rainbowCount > 0
@@ -2036,8 +2916,8 @@ function showPlushFullscreen(plushName) {
                             <strong>${collectedCount} pcs</strong>
                         </div>
                         <div class="fullscreen-stat${drawChance === null ? ' unavailable' : ''}">
-                            <span>Chance per draw</span>
-                            <strong>${drawChance === null ? 'Unavailable' : `${drawChance.toLocaleString(undefined, { maximumFractionDigits: 4 })}%`}</strong>
+                            <span>${chanceLabel}</span>
+                            <strong>${drawChance === null ? 'Unavailable' : formatChanceAsOneIn(drawChance)}</strong>
                         </div>
                         <div class="fullscreen-stat">
                             <span>Gold variants</span>

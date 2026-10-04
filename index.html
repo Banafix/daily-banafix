@@ -8,10 +8,16 @@
 </head>
 <body>
 
-<button id="newsBtn" type="button">News</button>
+<div id="topLeftControls">
+    <div id="blinkBalance" class="blink-balance" aria-label="Blink balance"><span aria-hidden="true">✨</span><span data-blink-count>0</span><span>Blink</span></div>
+</div>
 <div id="topControls">
-    <button id="saveBtn" type="button" aria-haspopup="dialog" aria-controls="saveModal">💾 Save</button>
-    <button id="chancesBtn" type="button" aria-haspopup="dialog" aria-controls="chancesModal">🎲 Chances</button>
+    <button id="quickActionsBtn" type="button" aria-label="Quick actions" title="Quick actions" aria-haspopup="menu" aria-controls="quickActionsMenu" aria-expanded="false">⋯</button>
+    <div id="quickActionsMenu" class="quick-actions-menu hidden" role="menu">
+        <button id="saveBtn" type="button" role="menuitem" aria-haspopup="dialog" aria-controls="saveModal">📄 Save</button>
+        <button id="chancesBtn" type="button" role="menuitem" aria-haspopup="dialog" aria-controls="chancesModal">🎲 Chances</button>
+        <button id="newsBtn" type="button" role="menuitem">📢 News</button>
+    </div>
 </div>
 
 <div id="newsPanel" class="news-panel hidden">
@@ -54,9 +60,53 @@
             <span class="level-reward-icon" aria-hidden="true">🎁</span>
             <div>
                 <strong id="levelRewardTitle"></strong>
-                <div id="levelRewardDescription">+1 free crate</div>
+                <div id="levelRewardDescription">+1 free crate · +2 Blink</div>
             </div>
         </div>
+    </div>
+</div>
+
+<div id="gameMenuModal" class="news-modal hidden" aria-hidden="true">
+    <div class="news-modal-backdrop"></div>
+    <div class="news-modal-dialog game-menu-dialog" role="dialog" aria-modal="true" aria-labelledby="gameMenuTitle">
+        <button id="closeGameMenuModal" class="news-modal-close" aria-label="Close">×</button>
+        <h2 id="gameMenuTitle">Game menu</h2>
+        <div class="game-menu-actions">
+            <button id="levelInfo" class="level-indicator game-menu-action" type="button" aria-label="Level progress" aria-haspopup="dialog" aria-controls="levelProgressModal" aria-expanded="false">
+                <span class="game-menu-action-icon" aria-hidden="true">🐣</span>
+                <span class="game-menu-action-label">Level</span>
+            </button>
+            <button id="upgradeBtn" class="draw-action-icon upgrade-btn game-menu-action" type="button" aria-label="Upgrade" title="Upgrade">
+                <span class="game-menu-action-icon" aria-hidden="true">⬆️</span>
+                <span class="game-menu-action-label">Upgrades</span>
+            </button>
+            <button id="achievementsBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Achievements" title="Achievements">
+                <span class="game-menu-action-icon" aria-hidden="true">🏆</span>
+                <span class="game-menu-action-label">Achievements</span>
+            </button>
+            <button id="catalogBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Banafix Catalog" title="Banafix Catalog" aria-haspopup="dialog" aria-controls="catalogModal">
+                <span class="game-menu-action-icon" aria-hidden="true">📚</span>
+                <span class="game-menu-action-label">Catalog</span>
+            </button>
+            <button id="calendarBtn" class="game-menu-action" type="button" aria-label="Calendar" title="Calendar" aria-haspopup="dialog" aria-controls="calendarModal">
+                <span class="game-menu-action-icon" aria-hidden="true">📅</span>
+                <span class="game-menu-action-label">Calendar</span>
+            </button>
+            <button class="game-menu-action under-construction-action" type="button" aria-label="Under construction" title="Under construction" disabled>
+                <span class="game-menu-action-icon" aria-hidden="true">🛠️</span>
+                <span class="game-menu-action-label">Under construction</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="drawCollectionModal" class="news-modal hidden" aria-hidden="true">
+    <div class="news-modal-backdrop"></div>
+    <div class="news-modal-dialog draw-collection-dialog" role="dialog" aria-modal="true" aria-labelledby="drawCollectionTitle">
+        <button id="closeDrawCollectionModal" class="news-modal-close" aria-label="Close">×</button>
+        <h2 id="drawCollectionTitle">Choose a collection</h2>
+        <div id="drawCollectionOptions"></div>
+        <div id="eventStatus" class="draw-collection-status"></div>
     </div>
 </div>
 
@@ -67,36 +117,67 @@
     <div class="news-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="newsModalTitle">
         <button id="closeNewsModal" class="news-modal-close" aria-label="Close">×</button>
         <h2 id="newsModalTitle">Latest news 📢</h2>
-        <div class="news-card news-modal-card">
-            <h3>September 30, 2026 · Triple Draw Update</h3>
-            <ul>
-                <li>Each draw now awards 3 Banafixes, revealed one card at a time with a 2-second pause.</li>
-                <li>Normal, Gold, and Rainbow cards flash in their variant colors.</li>
-                <li>Drawn cards stay visible until the next 24-hour reset or until another free crate is opened.</li>
-                <li>Daily draws reset at 00:00 Poland time. Free crates use your saved balance; Infinite Crates has been removed.</li>
-                <li>Use Save to copy/export or import your collection, XP, crates, achievements, and draw progress.</li>
+        <div class="news-card news-modal-card news-feature-card">
+            <div class="news-feature-topline">
+                <span>GAME UPDATE</span>
+                <time datetime="2026-10-05">05 OCT 2026</time>
+            </div>
+            <h3>Blink & Upgrade Update</h3>
+            <ul class="news-feature-grid">
+                <li>
+                    <span class="news-feature-icon" aria-hidden="true">🎲</span>
+                    <div><strong>Collection draws</strong><span>Choose a collection before opening a crate. Each card shows its XP and Blink rewards.</span></div>
+                </li>
+                <li>
+                    <span class="news-feature-icon" aria-hidden="true">✨</span>
+                    <div><strong>Blink currency</strong><span>Earn Blink by rarity, plus 2 Blink for every player level.</span></div>
+                </li>
+                <li>
+                    <span class="news-feature-icon" aria-hidden="true">⬆️</span>
+                    <div><strong>Collection upgrades</strong><span>Gold +2% and Rainbow +0.5% per level. XP Boost adds +5 XP per Banafix. Max level 3.</span></div>
+                </li>
+                <li>
+                    <span class="news-feature-icon" aria-hidden="true">📅</span>
+                    <div><strong>Event calendar</strong><span>See the next 4 weekly events and 2 upcoming Sunburst seasons.</span></div>
+                </li>
             </ul>
         </div>
-        <div class="news-card news-modal-card">
+        <div class="news-card news-modal-card news-feature-card">
+            <div class="news-feature-topline">
+                <span>DRAW UPDATE</span>
+                <time datetime="2026-09-30">30 SEP 2026</time>
+            </div>
+            <h3>Triple Draw Update</h3>
+            <ul class="news-feature-grid">
+                <li><span class="news-feature-icon" aria-hidden="true">🎴</span><div><strong>Three Banafixes</strong><span>Every draw reveals three cards one at a time, with a short pause between them.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant effects</strong><span>Normal, Gold and Rainbow cards flash in their variant colors.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🕛</span><div><strong>Daily results</strong><span>Results stay visible until the next Poland-time reset or another crate is opened.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">💾</span><div><strong>Save data</strong><span>Export or import your collection, XP, crates, achievements and draw progress.</span></div></li>
+            </ul>
+        </div>
+        <div class="news-card news-modal-card news-feature-card">
+            <div class="news-feature-topline">
+                <span>COLLECTION UPDATE</span>
+                <span>NEW DESIGNS</span>
+            </div>
             <h3>Banafix remodels</h3>
-            <ul>
-                <li>New Banafix remodels. will be more in the future.</li>
-                <li>light mode was deleted.</li>
+            <ul class="news-feature-grid">
+                <li><span class="news-feature-icon" aria-hidden="true">🧸</span><div><strong>New remodels</strong><span>Fresh Banafix designs have been added to the collection.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🛠️</span><div><strong>More to come</strong><span>Additional remodels are planned. Light mode has been removed.</span></div></li>
             </ul>
         </div>
-        <div class="news-card news-modal-card">
+        <div class="news-card news-modal-card news-feature-card">
+            <div class="news-feature-topline">
+                <span>ACHIEVEMENTS & DROP</span>
+                <span>UPDATE 1.2</span>
+            </div>
             <h3>Achievements Update & Drop #2</h3>
             <img src="images/update2.png" alt="Update 1.2" class="news-image">
-            <ul>
-                I added achievements, there will be more of them but for now there are only 6.
-                <li>✨ What's new?</li>
-                <li>achievements!</li>
-                <li>9 new banafixes</li>
-                <li>new taco thusday collection</li>
-                <li>exp for gold and rainbow variants</li>
-                <li>🐛 Bug fixes</li>
-                <li>time does not reset after opening a free case</li>
-                <li>text renders correctly in gallery</li>
+            <ul class="news-feature-grid">
+                <li><span class="news-feature-icon" aria-hidden="true">🏆</span><div><strong>Achievements</strong><span>Six achievements are available to complete.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🎉</span><div><strong>9 new Banafixes</strong><span>Expand your collection with nine new designs.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🌮</span><div><strong>Taco Tuesday</strong><span>A new event collection joins the game.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant XP & fixes</strong><span>Gold and Rainbow award bonus XP. Daily crate timing and gallery text were fixed.</span></div></li>
             </ul>
         </div>
         <div class="news-card news-modal-card">
@@ -146,6 +227,25 @@
     </div>
 </div>
 
+<div id="calendarModal" class="news-modal hidden" aria-hidden="true">
+    <div class="news-modal-backdrop"></div>
+    <div class="news-modal-dialog calendar-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="calendarModalTitle">
+        <button id="closeCalendarModal" class="news-modal-close" aria-label="Close">×</button>
+        <h2 id="calendarModalTitle">Event calendar</h2>
+        <div id="calendarContent"></div>
+    </div>
+</div>
+
+<div id="upgradeModal" class="news-modal hidden" aria-hidden="true">
+    <div class="news-modal-backdrop"></div>
+    <div class="news-modal-dialog upgrade-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle">
+        <button id="closeUpgradeModal" class="news-modal-close" aria-label="Close">×</button>
+        <h2 id="upgradeModalTitle">Collection upgrades</h2>
+        <div id="upgradeBlinkBalance" class="blink-balance upgrade-blink-balance" aria-label="Blink balance"><span aria-hidden="true">✨</span><span data-blink-count>0</span><span>Blink</span></div>
+        <div id="upgradeList" class="upgrade-list"></div>
+    </div>
+</div>
+
 <div id="saveModal" class="news-modal hidden" aria-hidden="true">
     <div class="news-modal-backdrop"></div>
     <div class="news-modal-dialog save-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="saveModalTitle">
@@ -180,17 +280,13 @@
 
 <div class="draw-controls">
     <button id="freeCrateBtn" class="free-crate-button">Open free crate <span id="freeCrateCount">0</span></button>
-    <button id="levelInfo" class="level-indicator" type="button" aria-label="Level progress" aria-haspopup="dialog" aria-controls="levelProgressModal" aria-expanded="false"></button>
-    <button id="achievementsBtn" class="draw-action-icon" type="button" aria-label="Achievements" title="Achievements">🏆</button>
-    <button id="catalogBtn" class="draw-action-icon" type="button" aria-label="Banafix Catalog" title="Banafix Catalog" aria-haspopup="dialog" aria-controls="catalogModal">📚</button>
+    <button id="gameMenuBtn" class="draw-action-icon game-menu-btn" type="button" aria-label="Game menu" title="Game menu" aria-haspopup="dialog" aria-controls="gameMenuModal" aria-expanded="false">☰</button>
 </div>
 
 <p id="timer"></p>
 
 <div id="result"></div>
 
-
-<div id="eventStatus" style="margin:10px; color: var(--text);"></div>
 
 <script src="script.js"></script>
 
