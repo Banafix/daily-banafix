@@ -54,6 +54,12 @@ function getNextWarsawMidnight(timestamp = Date.now()) {
     return midnight;
 }
 
+function getPlushDisplayName(name) {
+    return typeof name === 'string'
+        ? name.replace(/\bBanafix\b/gi, '').replace(/\s+/g, ' ').trim()
+        : name;
+}
+
 const plushies = [
 
 {
@@ -416,6 +422,10 @@ const plushies = [
 
 ];
 
+plushies.forEach(plush => {
+    plush.name = getPlushDisplayName(plush.name);
+});
+
 let collection = loadCollection();
 let rolling = false;
 let freeCrateCount = loadFreeCrateCount();
@@ -437,18 +447,87 @@ const RARITY_XP = {
     secret: 200,
 };
 
-const RARITY_BLINK_REWARDS = {
-    common: 1,
-    rare: 2,
-    epic: 4,
-    legendary: 10,
-    secret: 20
+const RARITY_BLINK_RANGES = {
+    common: { min: 1, max: 4 },
+    rare: { min: 5, max: 8 },
+    epic: { min: 9, max: 20 },
+    legendary: { min: 40, max: 70 },
+    secret: { min: 100, max: 200 }
 };
+
+const FUSION_RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'secret'];
+const FUSION_VARIANT_BLINK_BONUS_PER_10 = 1;
+const FUSION_MAX_VARIANT_BLINK_BONUS = 15;
+
+const PLUSH_BLINK_VALUES = {
+    Classic: 1,
+    '2 for 1': 4,
+    'v3': 3,
+    negative: 2,
+    Error: 40,
+    retro: 54,
+    angel: 68,
+    Suit: 5,
+    sweater: 8,
+    camouflage: 7,
+    Milkman: 9,
+    spy: 16,
+    grass: 11,
+    cosmic: 18,
+    golden: 13,
+    Unknown: 100,
+    '67': 150,
+    '-180': 4,
+    nerd: 6,
+    '4k': 5,
+    colorless: 3,
+    alien: 20,
+    ghost: 15,
+    faceless: 2,
+    'v2': 1,
+    angry: 4,
+    tiny: 52,
+    Crayon: 66,
+    invisible: 8,
+    achievement: 7,
+    cake: 3,
+    beach: 6,
+    'orange juice': 10,
+    monster: 17,
+    swimsuit: 5,
+    Ben: 12,
+    sus: 8,
+    stickman: 7,
+    cring: 2,
+    fallout: 1,
+    portal: 47,
+    cubed: 61,
+    ball: 19,
+    '7 minutes': 14,
+    neighbor: 200,
+    sombrero: 6,
+    cactus: 9,
+    pinata: 16,
+    taco: 175,
+    lava: 40,
+    mexican: 4
+};
+
+plushies.forEach(plush => {
+    const range = RARITY_BLINK_RANGES[plush.rarity];
+    const blinkValue = PLUSH_BLINK_VALUES[plush.name];
+    if (!range || !Number.isInteger(blinkValue) || blinkValue < range.min || blinkValue > range.max) {
+        throw new Error(`Invalid Blink value for ${plush.name}.`);
+    }
+    plush.blinkValue = blinkValue;
+});
+
 const LEVEL_BLINK_REWARD = 2;
 
 const VARIANT_XP = {
     gold: 40,
     rainbow: 60,
+    negative: 0,
     normal: 0
 };
 
@@ -459,7 +538,8 @@ const VARIANT_CHANCES = {
 
 const COLLECTION_UPGRADE_CONFIG = {
     gold: { label: 'Gold chance', bonus: 2 },
-    rainbow: { label: 'Rainbow chance', bonus: 0.5 }
+    rainbow: { label: 'Rainbow chance', bonus: 0.5 },
+    negative: { label: 'Negative chance', bonus: 0.5, cost: 100 }
 };
 const MAX_COLLECTION_UPGRADE_LEVEL = 3;
 const COLLECTION_UPGRADE_BLINK_COST = { baseCost: 10, costStep: 8 };
@@ -483,6 +563,14 @@ const COLLECTION_UPGRADE_DEFINITIONS = {
         icon: '📦',
         upgradeLabel: 'Rainbow chance'
     },
+    'general-negative': {
+        key: 'general-negative',
+        collectionKey: 'general',
+        variantKey: 'negative',
+        label: 'General',
+        icon: '📦',
+        upgradeLabel: 'Negative chance'
+    },
     'legends-gold': {
         key: 'legends-gold',
         collectionKey: 'legends',
@@ -498,6 +586,14 @@ const COLLECTION_UPGRADE_DEFINITIONS = {
         label: 'Legends',
         icon: '👑',
         upgradeLabel: 'Rainbow chance'
+    },
+    'legends-negative': {
+        key: 'legends-negative',
+        collectionKey: 'legends',
+        variantKey: 'negative',
+        label: 'Legends',
+        icon: '👑',
+        upgradeLabel: 'Negative chance'
     },
     'summer-gold': {
         key: 'summer-gold',
@@ -515,6 +611,14 @@ const COLLECTION_UPGRADE_DEFINITIONS = {
         icon: '🍹',
         upgradeLabel: 'Rainbow chance'
     },
+    'summer-negative': {
+        key: 'summer-negative',
+        collectionKey: 'summer',
+        variantKey: 'negative',
+        label: 'Sunburst',
+        icon: '🍹',
+        upgradeLabel: 'Negative chance'
+    },
     'taco-gold': {
         key: 'taco-gold',
         collectionKey: 'taco',
@@ -530,6 +634,14 @@ const COLLECTION_UPGRADE_DEFINITIONS = {
         label: 'Taco Tuesday',
         icon: '🌮',
         upgradeLabel: 'Rainbow chance'
+    },
+    'taco-negative': {
+        key: 'taco-negative',
+        collectionKey: 'taco',
+        variantKey: 'negative',
+        label: 'Taco Tuesday',
+        icon: '🌮',
+        upgradeLabel: 'Negative chance'
     }
 };
 
@@ -555,7 +667,7 @@ const LEVEL_BADGES = [
 ];
 
 function getCrateRewardLabel(rewardCrates) {
-    return `${rewardCrates} free crate${rewardCrates === 1 ? '' : 's'}`;
+    return `${rewardCrates} free draw${rewardCrates === 1 ? '' : 's'}`;
 }
 
 function createNamedAchievement({ id, title, description, icon, requiredNames, rewardCrates = 1, reward, detailTitle = 'Required Banafixes', category = 'Sets' }) {
@@ -571,7 +683,7 @@ function createNamedAchievement({ id, title, description, icon, requiredNames, r
         category,
         requirementType: 'named',
         detailTitle,
-        requiredNames
+        requiredNames: requiredNames.map(getPlushDisplayName)
     };
 }
 
@@ -722,7 +834,13 @@ function renderAchievementDetails(achievement) {
         const plushName = plush ? plush.name : name;
         const rarity = plush ? plush.rarity : 'common';
         const img = plush ? plush.image : 'images/Banafix.png';
-        const variantClass = collectedItem && collectedItem.rainbowCount > 0 ? ' rainbow-card' : collectedItem && collectedItem.goldCount > 0 ? ' gold-card' : '';
+        const variantClass = collectedItem && collectedItem.negativeCount > 0
+            ? ' negative-card'
+            : collectedItem && collectedItem.rainbowCount > 0
+                ? ' rainbow-card'
+                : collectedItem && collectedItem.goldCount > 0
+                    ? ' gold-card'
+                    : '';
         return `
             <div class="gallery-card achievement-gallery-card${variantClass}${owned ? '' : ' disabled-card missing'}">
                 <img src="${img}" alt="${plushName}" onerror="this.onerror=null;this.src='images/Banafix.png'">
@@ -876,7 +994,7 @@ function renderLevelProgressModal() {
     currentEl.textContent = `${currentLevelXp} / ${nextLevelXp} XP`;
     remainingEl.textContent = `${nextLevelXp - currentLevelXp} XP to next level`;
     rewardTitleEl.textContent = `Level ${level + 1} reward`;
-    rewardDescriptionEl.textContent = `+1 free crate · +${LEVEL_BLINK_REWARD} Blink`;
+    rewardDescriptionEl.textContent = `+1 free draw · +${LEVEL_BLINK_REWARD} Blink`;
 }
 
 function getAchievementProgress() {
@@ -990,6 +1108,8 @@ function getPlushVariantChance(plushName, variant) {
         ? chances.goldChance
         : variant === 'rainbow'
             ? chances.rainbowChance
+            : variant === 'negative'
+                ? chances.negativeChance
             : chances.normalChance;
 
     return (baseChance * variantChance) / 100;
@@ -1005,13 +1125,27 @@ function formatChanceAsOneIn(chance) {
 
 function loadCollection() {
     const raw = JSON.parse(localStorage.getItem('collection')) || [];
-    return raw.map(item => ({
+    const migrated = raw
+        .filter(item => item && typeof item === 'object')
+        .map(item => ({
+            ...item,
+            name: getPlushDisplayName(item.name),
+            count: item.count === undefined || item.count === null ? 1 : Math.floor(Number(item.count))
+        }))
+        .filter(item => Number.isFinite(item.count) && item.count > 0);
+    if (migrated.length !== raw.length || migrated.some((item, index) => (
+        item.name !== raw[index].name || item.count !== (raw[index].count ?? 1)
+    ))) {
+        localStorage.setItem('collection', JSON.stringify(migrated));
+    }
+    return migrated.map(item => ({
         name: item.name,
         image: item.image,
         rarity: item.rarity || 'common',
-        count: item.count || 1,
+        count: item.count,
         goldCount: item.goldCount || 0,
-        rainbowCount: item.rainbowCount || 0
+        rainbowCount: item.rainbowCount || 0,
+        negativeCount: item.negativeCount || 0
     }));
 }
 
@@ -1041,16 +1175,16 @@ function encodeSavePayload(payload) {
     const data = payload && payload.data ? payload.data : payload;
     const compact = {
         f: 'daily-banafix-save',
-        v: 3,
+        v: 4,
         d: [
-            (data.collection || []).map(item => [item.name, item.image || '', item.rarity || 'common', item.count || 1, item.goldCount || 0, item.rainbowCount || 0]),
+            (data.collection || []).map(item => [item.name, item.image || '', item.rarity || 'common', item.count || 1, item.goldCount || 0, item.rainbowCount || 0, item.negativeCount || 0]),
             Number.isFinite(data.playerXp) ? data.playerXp : 0,
             Number.isFinite(data.freeCrateCount) ? data.freeCrateCount : 0,
             Number.isFinite(data.lastAwardedLevel) ? data.lastAwardedLevel : 0,
             Object.entries(data.achievementsState || {}),
             data.lastDraw ?? null,
             data.lastDrawResults ? [
-                data.lastDrawResults.cards.map(card => [card.name, card.variant]),
+                data.lastDrawResults.cards.map(card => [card.name, card.variant, Boolean(card.sold)]),
                 data.lastDrawResults.drawnAt,
                 data.lastDrawResults.expiresAt
             ] : null,
@@ -1076,24 +1210,25 @@ function decodeSavePayload(value) {
     }
 
     const compact = JSON.parse(trimmed.slice(4));
-    if (!compact || compact.f !== 'daily-banafix-save' || (compact.v !== 2 && compact.v !== 3) || !Array.isArray(compact.d) || compact.d.length < 7) {
+    if (!compact || compact.f !== 'daily-banafix-save' || ![2, 3, 4].includes(compact.v) || !Array.isArray(compact.d) || compact.d.length < 7) {
         throw new Error('The save data is invalid.');
     }
 
     const [collection, playerXp, freeCrateCount, lastAwardedLevel, achievementsState, lastDraw, lastDrawResults, rawUpgrades, blinks] = compact.d;
     return {
         format: 'daily-banafix-save',
-        version: 3,
+        version: 4,
         exportedAt: new Date().toISOString(),
         data: {
             collection: Array.isArray(collection)
-                ? collection.map(([name, image, rarity, count, goldCount, rainbowCount]) => ({
+                ? collection.map(([name, image, rarity, count, goldCount, rainbowCount, negativeCount]) => ({
                     name,
                     image,
                     rarity,
                     count,
                     goldCount,
-                    rainbowCount
+                    rainbowCount,
+                    negativeCount
                 }))
                 : [],
             playerXp: Number(playerXp) || 0,
@@ -1103,7 +1238,7 @@ function decodeSavePayload(value) {
             lastDraw: lastDraw ?? null,
             lastDrawResults: lastDrawResults && Array.isArray(lastDrawResults)
                 ? {
-                    cards: lastDrawResults[0].map(([name, variant]) => ({ name, variant })),
+                    cards: lastDrawResults[0].map(([name, variant, sold]) => ({ name, variant, sold: sold === true })),
                     drawnAt: Number(lastDrawResults[1]) || 0,
                     expiresAt: Number(lastDrawResults[2]) || 0
                 }
@@ -1131,14 +1266,14 @@ function createGameSavePayload() {
 
     return {
         format: 'daily-banafix-save',
-        version: 3,
+        version: 4,
         exportedAt: new Date().toISOString(),
         data
     };
 }
 
 function validateGameSavePayload(payload) {
-    if (!payload || payload.format !== 'daily-banafix-save' || ![1, 2, 3].includes(payload.version)) {
+    if (!payload || payload.format !== 'daily-banafix-save' || ![1, 2, 3, 4].includes(payload.version)) {
         throw new Error('This is not a supported Daily Banafix save.');
     }
 
@@ -1213,7 +1348,7 @@ function awardFreeCratesIfNeeded() {
         updateBlinkBalance();
         localStorage.setItem('lastAwardedLevel', currentLevel);
         for (let level = awardedLevel + 1; level <= currentLevel; level += 1) {
-            showToast(`Level up! Reached level ${level}! +1 free crate · +${LEVEL_BLINK_REWARD} Blink`, 'success');
+            showToast(`Level up! Reached level ${level}! +1 free draw · +${LEVEL_BLINK_REWARD} Blink`, 'success');
         }
         updateFreeCrateButton();
     }
@@ -1259,7 +1394,7 @@ function awardAchievementIfNeeded() {
             updated = true;
             freeCrateCount = loadFreeCrateCount() + rewardCrates;
             saveFreeCrateCount(freeCrateCount);
-            showToast(`Achievement unlocked: ${achievement.title}! +${rewardCrates} free crate${rewardCrates === 1 ? '' : 's'}`, 'success', achievement.icon);
+            showToast(`Achievement unlocked: ${achievement.title}! +${rewardCrates} free draw${rewardCrates === 1 ? '' : 's'}`, 'success', achievement.icon);
         }
     });
 
@@ -1282,16 +1417,16 @@ function updateFreeCrateButton() {
     }
 
     if (btn) {
-        const label = dailyCrateAvailable ? 'Open daily crate ' : 'Open free crate ';
+        const label = dailyCrateAvailable ? 'Open daily draw ' : 'Open free draw ';
         if (btn.firstChild && btn.firstChild.textContent !== label) {
             btn.firstChild.textContent = label;
         }
         btn.disabled = rolling || (!dailyCrateAvailable && freeCrateCount <= 0);
         btn.title = dailyCrateAvailable
-            ? 'Your daily crate is ready'
+            ? 'Your daily draw is ready'
             : freeCrateCount > 0
-                ? `You have ${freeCrateCount} free crates`
-                : 'No free crates available';
+                ? `You have ${freeCrateCount} free draws`
+                : 'No free draws available';
     }
 }
 
@@ -1535,9 +1670,14 @@ function loadSavedDrawResults() {
         return null;
     }
 
-    const drawnResults = savedResults.cards.map(savedCard => ({
+    const cards = savedResults.cards.map(savedCard => ({
+        ...savedCard,
+        name: getPlushDisplayName(savedCard.name)
+    }));
+    const drawnResults = cards.map(savedCard => ({
         plush: plushies.find(plush => plush.name === savedCard.name),
-        variant: ['normal', 'gold', 'rainbow'].includes(savedCard.variant) ? savedCard.variant : 'normal'
+        variant: ['normal', 'gold', 'rainbow', 'negative'].includes(savedCard.variant) ? savedCard.variant : 'normal',
+        sold: savedCard.sold === true
     })).filter(result => result.plush);
 
     if (drawnResults.length !== 3) {
@@ -1545,16 +1685,208 @@ function loadSavedDrawResults() {
         return null;
     }
 
+    if (cards.some((card, index) => card.name !== savedResults.cards[index].name)) {
+        localStorage.setItem('lastDrawResults', JSON.stringify({ ...savedResults, cards }));
+    }
+
     return drawnResults;
+}
+
+function reconcileSavedDrawResults() {
+    const drawnResults = loadSavedDrawResults();
+    if (!drawnResults) return null;
+
+    const availableByName = new Map(collection.map(item => [
+        item.name,
+        getCollectedVariantCounts(item)
+    ]));
+    let changed = false;
+    drawnResults.forEach(result => {
+        if (result.sold) return;
+        const availableVariants = availableByName.get(result.plush.name);
+        if (availableVariants && availableVariants[result.variant] > 0) {
+            availableVariants[result.variant] -= 1;
+        } else {
+            result.sold = true;
+            changed = true;
+        }
+    });
+
+    if (changed) {
+        const saved = JSON.parse(localStorage.getItem('lastDrawResults'));
+        saved.cards = saved.cards.map((card, index) => ({
+            ...card,
+            sold: drawnResults[index].sold
+        }));
+        localStorage.setItem('lastDrawResults', JSON.stringify(saved));
+    }
+
+    return drawnResults;
+}
+
+function refreshSavedDrawResultButtons() {
+    const resultEl = document.getElementById('result');
+    const drawnResults = reconcileSavedDrawResults();
+    if (resultEl && drawnResults) renderDrawCards(resultEl, drawnResults, true);
 }
 
 function getDrawRewards(plush, variant) {
     const collectionKey = getUpgradeCollectionKey(plush.collection || '');
     const xpBoost = getCollectionUpgradeLevel(collectionKey, 'xp') * COLLECTION_XP_BOOST_PER_LEVEL;
     return {
-        xp: (RARITY_XP[plush.rarity] || 0) + (VARIANT_XP[variant] || 0) + xpBoost,
-        blinks: RARITY_BLINK_REWARDS[plush.rarity] || 0
+        xp: (RARITY_XP[plush.rarity] || 0) + (VARIANT_XP[variant] || 0) + xpBoost
     };
+}
+
+function getPlushSellValue(plush, variant = 'normal') {
+    const variantMultiplier = variant === 'gold' ? 2 : variant === 'rainbow' ? 3 : variant === 'negative' ? 5 : 1;
+    return (plush.blinkValue || 0) * variantMultiplier;
+}
+
+function getCollectedVariantCounts(item) {
+    const total = Math.max(0, Math.floor(Number(item?.count) || 0));
+    const gold = Math.min(total, Math.max(0, Math.floor(Number(item?.goldCount) || 0)));
+    const rainbow = Math.min(total - gold, Math.max(0, Math.floor(Number(item?.rainbowCount) || 0)));
+    const negative = Math.min(total - gold - rainbow, Math.max(0, Math.floor(Number(item?.negativeCount) || 0)));
+    return {
+        normal: total - gold - rainbow - negative,
+        gold,
+        rainbow,
+        negative
+    };
+}
+
+function getFusionInfo(selectedCopies) {
+    if (selectedCopies.length !== 4) return null;
+
+    const rarityRanks = selectedCopies.map(({ plush }) => FUSION_RARITY_ORDER.indexOf(plush.rarity));
+    if (rarityRanks.some(rank => rank < 0)) return null;
+
+    const averageRarityRank = rarityRanks.reduce((sum, rank) => sum + rank, 0) / rarityRanks.length;
+    const totalBlink = selectedCopies.reduce(
+        (sum, { plush, variant }) => sum + getPlushSellValue(plush, variant),
+        0
+    );
+    const averageBlink = totalBlink / selectedCopies.length;
+
+    return {
+        chance: Math.round(25 + averageRarityRank * 10),
+        totalBlink,
+        minRewardBlink: totalBlink * 0.65,
+        maxRewardBlink: totalBlink * 2,
+        variantBlinkBonus: Math.min(
+            FUSION_MAX_VARIANT_BLINK_BONUS,
+            Math.floor(averageBlink / 10) * FUSION_VARIANT_BLINK_BONUS_PER_10
+        )
+    };
+}
+
+function getFusionRewardKey(outcome) {
+    return encodeURIComponent(JSON.stringify([outcome.plush.name, outcome.variant]));
+}
+
+function getFusionRewardSuccessChance(fusionInfo, outcome) {
+    if (!outcome || outcome.value <= 0) return 0;
+    const rewardValueRatio = fusionInfo.totalBlink / outcome.value;
+    return Math.min(95, fusionInfo.chance * rewardValueRatio ** 4);
+}
+
+function getFusionRewardOutcomes(fusionInfo) {
+    const variants = ['normal', 'gold', 'rainbow', 'negative'];
+    const outcomes = plushies.flatMap(plush => {
+        const variantChances = getFusionVariantChanceInfo(plush.collection || 'general', fusionInfo.variantBlinkBonus);
+        return variants
+            .filter(variant => variantChances[`${variant}Chance`] > 0)
+            .map(variant => ({
+                plush,
+                variant,
+                value: getPlushSellValue(plush, variant),
+                category: plush.collection || 'Uncategorized',
+                weight: variantChances[`${variant}Chance`]
+            }));
+    });
+    const inRange = outcomes.filter(outcome => (
+        outcome.value >= fusionInfo.minRewardBlink && outcome.value <= fusionInfo.maxRewardBlink
+    ));
+    if (inRange.length > 0) return inRange;
+
+    const closestDistance = Math.min(...outcomes.map(outcome => Math.abs(outcome.value - fusionInfo.totalBlink)));
+    return outcomes.filter(outcome => Math.abs(outcome.value - fusionInfo.totalBlink) === closestDistance);
+}
+
+function getFusionRewardCategories(selectedCopies, rewardOutcomes) {
+    const categories = new Map();
+    selectedCopies.forEach(({ plush }) => {
+        const category = plush.collection || 'Uncategorized';
+        categories.set(category, (categories.get(category) || 0) + 1);
+    });
+
+    const eligibleCategories = [...categories.entries()]
+        .map(([category, weight]) => ({
+            category,
+            weight,
+            rewards: rewardOutcomes.filter(outcome => outcome.category === category)
+        }))
+        .filter(entry => entry.rewards.length > 0);
+
+    if (eligibleCategories.length > 0) return eligibleCategories;
+
+    const fallbackCategories = new Map();
+    rewardOutcomes.forEach(outcome => {
+        const category = outcome.category;
+        if (!fallbackCategories.has(category)) fallbackCategories.set(category, []);
+        fallbackCategories.get(category).push(outcome);
+    });
+
+    return [...fallbackCategories.entries()].map(([category, rewards]) => ({
+        category,
+        weight: 1,
+        rewards
+    }));
+}
+
+function getFusionVariantChanceInfo(collectionName, blinkBonus) {
+    const chances = getCollectionVariantChanceInfo(getUpgradeCollectionKey(collectionName));
+    const baseSpecialChance = chances.goldChance + chances.rainbowChance + chances.negativeChance;
+    const addedChance = Math.min(blinkBonus, 100 - baseSpecialChance);
+    const addedShare = baseSpecialChance > 0 ? addedChance / baseSpecialChance : 0;
+    const goldChance = chances.goldChance * (1 + addedShare);
+    const rainbowChance = chances.rainbowChance * (1 + addedShare);
+    const negativeChance = chances.negativeChance * (1 + addedShare);
+
+    return {
+        goldChance,
+        rainbowChance,
+        negativeChance,
+        normalChance: Math.max(0, 100 - goldChance - rainbowChance - negativeChance)
+    };
+}
+
+function sellCollectedPlush(plushName, variant) {
+    const plush = getPlushByName(plushName);
+    const itemIndex = collection.findIndex(item => item.name === plushName);
+    if (!plush || itemIndex === -1) return false;
+
+    const item = collection[itemIndex];
+    const variants = getCollectedVariantCounts(item);
+    if (!Object.hasOwn(variants, variant) || variants[variant] <= 0) return false;
+
+    item.count = Math.max(0, (Number(item.count) || 0) - 1);
+    if (variant === 'gold') {
+        item.goldCount = Math.max(0, (Number(item.goldCount) || 0) - 1);
+    } else if (variant === 'rainbow') {
+        item.rainbowCount = Math.max(0, (Number(item.rainbowCount) || 0) - 1);
+    } else if (variant === 'negative') {
+        item.negativeCount = Math.max(0, (Number(item.negativeCount) || 0) - 1);
+    }
+
+    if (item.count === 0) collection.splice(itemIndex, 1);
+
+    const sellValue = getPlushSellValue(plush, variant);
+    saveCollection();
+    savePlayerBlinks(loadPlayerBlinks() + sellValue);
+    updateBlinkBalance();
+    return sellValue;
 }
 
 function buildDrawRewardMarkup(plush, variant, hidden = false) {
@@ -1562,7 +1894,6 @@ function buildDrawRewardMarkup(plush, variant, hidden = false) {
     return `
         <div class="draw-card-rewards"${hidden ? ' hidden' : ''}>
             <span class="draw-card-reward xp">+${rewards.xp} XP</span>
-            <span class="draw-card-reward blink">+${rewards.blinks} Blink</span>
         </div>
     `;
 }
@@ -1570,18 +1901,19 @@ function buildDrawRewardMarkup(plush, variant, hidden = false) {
 function buildDrawCardsMarkup(drawnResults, revealAll = false) {
     return `
         <div class="draw-cards-stage">
-            ${drawnResults.map(({ plush, variant }, index) => {
-                const variantCardClass = variant === 'rainbow' ? 'rainbow-card' : variant === 'gold' ? 'gold-card' : '';
-                const flashVariant = variant === 'gold' || variant === 'rainbow' ? variant : 'normal';
+            ${drawnResults.map(({ plush, variant, sold = false }, index) => {
+                const variantCardClass = variant === 'rainbow' ? 'rainbow-card' : variant === 'gold' ? 'gold-card' : variant === 'negative' ? 'negative-card' : '';
+                const backVariantClass = variant === 'normal' ? '' : `${variant}-back`;
+                const flashVariant = variant === 'gold' || variant === 'rainbow' || variant === 'negative' ? variant : 'normal';
                 const variantBadge = variant === 'normal'
                     ? ''
-                    : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : '🥇 Gold'}</div>`;
+                    : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : variant === 'negative' ? '🖤 Negative' : '🥇 Gold'}</div>`;
                 const rewards = getDrawRewards(plush, variant);
                 return `
                 <div class="draw-card-result-item">
-                    <div class="draw-flip-card${revealAll ? ' revealed' : ''}" data-card-index="${index}" role="img" aria-label="${revealAll ? `${plush.name}, ${plush.rarity}, +${rewards.xp} XP, +${rewards.blinks} Blink` : `Face-down Banafix card ${index + 1}`}" >
+                    <div class="draw-flip-card${revealAll ? ' revealed' : ''}" data-card-index="${index}" role="img" aria-label="${revealAll ? `${plush.name}, ${plush.rarity}, +${rewards.xp} XP` : `Face-down Banafix card ${index + 1}`}" >
                         <div class="draw-flip-inner">
-                            <div class="draw-card-side draw-card-back" aria-hidden="${revealAll ? 'true' : 'false'}">
+                            <div class="draw-card-side draw-card-back ${backVariantClass}" aria-hidden="${revealAll ? 'true' : 'false'}">
                                 <span class="draw-card-back-mark">?</span>
                                 <span class="draw-card-back-label">Banafix</span>
                             </div>
@@ -1594,7 +1926,14 @@ function buildDrawCardsMarkup(drawnResults, revealAll = false) {
                             </div>
                         </div>
                     </div>
-                    ${buildDrawRewardMarkup(plush, variant, !revealAll)}
+                    <div class="draw-card-actions">
+                        ${buildDrawRewardMarkup(plush, variant, !revealAll)}
+                        ${revealAll ? `
+                            <button class="draw-card-sell-button" type="button" data-draw-sell-index="${index}" ${sold ? 'disabled' : ''}>
+                                ${sold ? 'Sold' : `Sell for ${getPlushSellValue(plush, variant)} Blink`}
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             `;
             }).join('')}
@@ -1604,6 +1943,30 @@ function buildDrawCardsMarkup(drawnResults, revealAll = false) {
 
 function renderDrawCards(resultEl, drawnResults, revealAll = false) {
     resultEl.innerHTML = buildDrawCardsMarkup(drawnResults, revealAll);
+    if (!revealAll) return;
+
+    resultEl.querySelectorAll('[data-draw-sell-index]').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = Number(button.dataset.drawSellIndex);
+            const savedResults = loadSavedDrawResults();
+            const drawResult = savedResults?.[index];
+            if (!drawResult || drawResult.sold) return;
+
+            const sellValue = sellCollectedPlush(drawResult.plush.name, drawResult.variant);
+            if (sellValue === false) {
+                showToast('That Banafix copy is no longer available.', 'error');
+                return;
+            }
+
+            drawResult.sold = true;
+            const saved = JSON.parse(localStorage.getItem('lastDrawResults'));
+            saved.cards[index].sold = true;
+            localStorage.setItem('lastDrawResults', JSON.stringify(saved));
+            refreshSavedDrawResultButtons();
+            renderGallery();
+            showToast(`${drawResult.plush.name} sold for ${sellValue} Blink.`, 'success');
+        });
+    });
 }
 
 function pushDrawHistorySet(drawnResults) {
@@ -1618,7 +1981,7 @@ function refreshCrateState() {
     if (rolling) return;
     const resultEl = document.getElementById('result');
     if (!resultEl) return;
-    const savedResults = loadSavedDrawResults();
+    const savedResults = reconcileSavedDrawResults();
     if (savedResults) {
         if (!resultEl.querySelector('.draw-cards-stage')) {
             renderDrawCards(resultEl, savedResults, true);
@@ -1663,7 +2026,7 @@ function drawPlush(options = {}) {
     if (bypassCooldown) {
         const count = loadFreeCrateCount();
         if (count <= 0) {
-            alert('You do not have any free crates.');
+            alert('You do not have any free draws.');
             return;
         }
         freeCrateCount = count - 1;
@@ -1679,8 +2042,14 @@ function drawPlush(options = {}) {
 
     const startTime = Date.now();
     const resultsExpireAt = getNextWarsawMidnight(startTime);
-    const revealDuration = 3000;
     const drawCount = 3;
+    const openingDuration = 300;
+    const firstFlipAt = 2000;
+    const flipDuration = 1300;
+    const pauseAfterReveal = 100;
+    const flipDelay = flipDuration + pauseAfterReveal;
+    const firstFlipDelay = Math.max(0, firstFlipAt - openingDuration);
+    const revealDuration = firstFlipDelay + ((drawCount - 1) * flipDelay) + flipDuration + pauseAfterReveal;
     const resultEl = document.getElementById('result');
 
     function showChestState() {
@@ -1706,7 +2075,7 @@ function drawPlush(options = {}) {
 
     function animateOpening() {
         const elapsed = Date.now() - startTime;
-        if (elapsed < 300) {
+        if (elapsed < openingDuration) {
             showChestState();
             window.requestAnimationFrame(animateOpening);
             return;
@@ -1728,16 +2097,17 @@ function drawPlush(options = {}) {
         resultEl.innerHTML = `
             <div class="draw-cards-stage">
                 ${drawnResults.map(({ plush, variant }, index) => {
-                    const variantCardClass = variant === 'rainbow' ? 'rainbow-card' : variant === 'gold' ? 'gold-card' : '';
-                    const flashVariant = variant === 'gold' || variant === 'rainbow' ? variant : 'normal';
+                    const variantCardClass = variant === 'rainbow' ? 'rainbow-card' : variant === 'gold' ? 'gold-card' : variant === 'negative' ? 'negative-card' : '';
+                    const backVariantClass = variant === 'normal' ? '' : `${variant}-back`;
+                    const flashVariant = variant === 'gold' || variant === 'rainbow' || variant === 'negative' ? variant : 'normal';
                     const variantBadge = variant === 'normal'
                         ? ''
-                        : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : '🥇 Gold'}</div>`;
+                        : `<div class="variant-badge ${variant}">${variant === 'rainbow' ? '🌈 Rainbow' : variant === 'negative' ? '🖤 Negative' : '🥇 Gold'}</div>`;
                     return `
-                        <div class="draw-card-result-item">
-                            <div class="draw-flip-card" data-card-index="${index}" role="img" aria-label="Face-down Banafix card ${index + 1}">
-                                <div class="draw-flip-inner">
-                                    <div class="draw-card-side draw-card-back" aria-hidden="false">
+                            <div class="draw-card-result-item draw-card-enter" style="--card-entry-index:${index};--card-entry-tilt:${index === 1 ? '4deg' : index === 0 ? '-5deg' : '3deg'}">
+                                <div class="draw-flip-card" data-card-index="${index}" role="img" aria-label="Face-down Banafix card ${index + 1}">
+                                    <div class="draw-flip-inner">
+                                    <div class="draw-card-side draw-card-back ${backVariantClass}" aria-hidden="false">
                                         <span class="draw-card-back-mark">?</span>
                                         <span class="draw-card-back-label">Banafix</span>
                                     </div>
@@ -1750,42 +2120,35 @@ function drawPlush(options = {}) {
                                     </div>
                             </div>
                         </div>
-                            ${buildDrawRewardMarkup(plush, variant, true)}
+                            <div class="draw-card-actions">
+                                ${buildDrawRewardMarkup(plush, variant, true)}
+                            </div>
                     </div>
                 `;
                 }).join('')}
             </div>
         `;
 
-        const flipDuration = 850;
-        const pauseAfterReveal = 500;
-        const flipDelay = flipDuration + pauseAfterReveal;
         drawnResults.forEach((drawResult, index) => {
             window.setTimeout(() => {
                 const card = resultEl.querySelector(`[data-card-index="${index}"]`);
                 if (!card) return;
                 card.classList.add('revealed');
                 const rewards = getDrawRewards(drawResult.plush, drawResult.variant);
-                card.setAttribute('aria-label', `${drawResult.plush.name}, ${drawResult.plush.rarity}, +${rewards.xp} XP, +${rewards.blinks} Blink`);
+                card.setAttribute('aria-label', `${drawResult.plush.name}, ${drawResult.plush.rarity}, +${rewards.xp} XP`);
                 card.querySelector('.draw-card-back')?.setAttribute('aria-hidden', 'true');
                 card.querySelector('.draw-card-front')?.setAttribute('aria-hidden', 'false');
-                card.parentElement.querySelector('.draw-card-rewards')?.removeAttribute('hidden');
                 window.setTimeout(() => card.querySelector('.draw-card-flash')?.classList.add('active'), flipDuration);
-
-                if (index === drawnResults.length - 1) {
-                    window.setTimeout(() => revealResults(drawnResults), flipDuration + pauseAfterReveal);
-                }
-            }, 120 + index * flipDelay);
+            }, firstFlipDelay + index * flipDelay);
         });
+        window.setTimeout(() => revealResults(drawnResults), revealDuration);
     }
 
     function revealResults(drawnResults) {
         let gainedXp = 0;
-        let gainedBlinks = 0;
         drawnResults.forEach(({ plush, variant }) => {
             const rewards = getDrawRewards(plush, variant);
             gainedXp += rewards.xp;
-            gainedBlinks += rewards.blinks;
 
             const existing = collection.find(item => item.name === plush.name);
             if (existing) {
@@ -1796,12 +2159,16 @@ function drawPlush(options = {}) {
                 if (variant === 'rainbow') {
                     existing.rainbowCount = (existing.rainbowCount || 0) + 1;
                 }
+                if (variant === 'negative') {
+                    existing.negativeCount = (existing.negativeCount || 0) + 1;
+                }
             } else {
                 collection.push({
                     ...plush,
                     count: 1,
                     goldCount: variant === 'gold' ? 1 : 0,
-                    rainbowCount: variant === 'rainbow' ? 1 : 0
+                    rainbowCount: variant === 'rainbow' ? 1 : 0,
+                    negativeCount: variant === 'negative' ? 1 : 0
                 });
             }
         });
@@ -1809,10 +2176,9 @@ function drawPlush(options = {}) {
         saveCollection();
         const currentXp = loadPlayerXp();
         savePlayerXp(currentXp + gainedXp);
-        savePlayerBlinks(loadPlayerBlinks() + gainedBlinks);
         updateLevelInfo();
         updateBlinkBalance();
-        showDrawXpToast(gainedXp, gainedBlinks);
+        showDrawXpToast(gainedXp);
         awardAchievementIfNeeded();
 
         if (!bypassCooldown) {
@@ -1820,30 +2186,28 @@ function drawPlush(options = {}) {
             localStorage.setItem('lastDraw', drawTime);
         }
         localStorage.setItem('lastDrawResults', JSON.stringify({
-            cards: drawnResults.map(({ plush, variant }) => ({ name: plush.name, variant })),
+            cards: drawnResults.map(({ plush, variant }) => ({ name: plush.name, variant, sold: false })),
             drawnAt: startTime,
             expiresAt: resultsExpireAt
         }));
         renderDrawCards(resultEl, drawnResults, true);
         showCollection();
 
-        window.setTimeout(() => {
-            rolling = false;
-            const freeCrateBtn = document.getElementById('freeCrateBtn');
-            if (freeCrateBtn) freeCrateBtn.disabled = false;
-            updateFreeCrateButton();
-        }, revealDuration);
+        rolling = false;
+        const freeCrateBtn = document.getElementById('freeCrateBtn');
+        if (freeCrateBtn) freeCrateBtn.disabled = false;
+        updateFreeCrateButton();
     }
 
     animateOpening();
 }
 
-function showDrawXpToast(gainedXp, gainedBlinks) {
+function showDrawXpToast(gainedXp) {
     const toast = document.createElement('div');
     toast.className = 'draw-xp-toast';
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
-    toast.textContent = `+${gainedXp} XP · +${gainedBlinks} Blink`;
+    toast.textContent = `+${gainedXp} XP`;
     document.body.appendChild(toast);
 
     window.requestAnimationFrame(() => toast.classList.add('visible'));
@@ -1858,7 +2222,7 @@ function openFreeCrate() {
 
     const count = loadFreeCrateCount();
     if (count <= 0) {
-        alert('You do not have any free crates.');
+        alert('You do not have any free draws.');
         return;
     }
 
@@ -1890,7 +2254,7 @@ function getCollectionUpgradeState() {
 
         const normalized = { ...parsed };
         Object.entries(COLLECTION_UPGRADE_DEFINITIONS).forEach(([key, info]) => {
-            if (!normalized[key] && typeof normalized[info.collectionKey] === 'number') {
+            if (info.variantKey !== 'negative' && !normalized[key] && typeof normalized[info.collectionKey] === 'number') {
                 normalized[key] = normalized[info.collectionKey];
             }
         });
@@ -1927,12 +2291,16 @@ function getCollectionXpBoostBlinkCost(collectionKey) {
 function getCollectionVariantChanceInfo(collectionKey = 'general') {
     const goldLevel = getCollectionUpgradeLevel(collectionKey, 'gold');
     const rainbowLevel = getCollectionUpgradeLevel(collectionKey, 'rainbow');
+    const negativeChance = getCollectionUpgradeLevel(collectionKey, 'negative') > 0
+        ? COLLECTION_UPGRADE_CONFIG.negative.bonus
+        : 0;
     const goldChance = Math.min(100, VARIANT_CHANCES.gold + (goldLevel * COLLECTION_UPGRADE_CONFIG.gold.bonus));
     const rainbowChance = Math.min(100, VARIANT_CHANCES.rainbow + (rainbowLevel * COLLECTION_UPGRADE_CONFIG.rainbow.bonus));
-    const normalChance = Math.max(0, 100 - goldChance - rainbowChance);
+    const normalChance = Math.max(0, 100 - goldChance - rainbowChance - negativeChance);
     return {
         goldChance,
         rainbowChance,
+        negativeChance,
         normalChance,
         goldBonus: goldLevel * COLLECTION_UPGRADE_CONFIG.gold.bonus,
         rainbowBonus: rainbowLevel * COLLECTION_UPGRADE_CONFIG.rainbow.bonus
@@ -1941,10 +2309,11 @@ function getCollectionVariantChanceInfo(collectionKey = 'general') {
 
 function rollPlushVariant(collectionName = 'general') {
     const key = getUpgradeCollectionKey(collectionName);
-    const { goldChance, rainbowChance } = getCollectionVariantChanceInfo(key);
+    const { goldChance, rainbowChance, negativeChance } = getCollectionVariantChanceInfo(key);
     const roll = Math.random() * 100;
     if (roll < rainbowChance) return 'rainbow';
     if (roll < rainbowChance + goldChance) return 'gold';
+    if (roll < rainbowChance + goldChance + negativeChance) return 'negative';
     return 'normal';
 }
 
@@ -1984,6 +2353,10 @@ function initApp() {
     updateLevelInfo();
     updateBlinkBalance();
     renderInitialCrate();
+    const homeCalendarContent = document.getElementById('homeCalendarContent');
+    if (homeCalendarContent) {
+        homeCalendarContent.innerHTML = renderCalendarContent();
+    }
 
     const levelInfoBtn = document.getElementById('levelInfo');
     const levelProgressModal = document.getElementById('levelProgressModal');
@@ -2044,6 +2417,23 @@ function initApp() {
     const upgradeModal = document.getElementById('upgradeModal');
     const closeUpgradeModalBtn = document.getElementById('closeUpgradeModal');
     const upgradeList = document.getElementById('upgradeList');
+    const fusionBtn = document.getElementById('fusionBtn');
+    const fusionModal = document.getElementById('fusionModal');
+    const closeFusionModalBtn = document.getElementById('closeFusionModal');
+    const fusionInventory = document.getElementById('fusionInventory');
+    const fusionSummary = document.getElementById('fusionSummary');
+    const fusionRewards = document.getElementById('fusionRewards');
+    const fusionSubmit = document.getElementById('fusionSubmit');
+    const fusionStatus = document.getElementById('fusionStatus');
+    const fusionWheelSection = document.getElementById('fusionWheelSection');
+    const fusionWheel = document.getElementById('fusionWheel');
+    const fusionWheelCenter = document.querySelector('#fusionWheel .fusion-wheel-center');
+    const fusionWheelChance = document.getElementById('fusionWheelChance');
+    const selectedFusionCopyKeys = new Set();
+    const visibleFusionRewardKeys = new Set();
+    let selectedFusionRewardKey = null;
+    let fusionRewardPoolSignature = '';
+    let fusionSpinning = false;
     const saveImportText = document.getElementById('saveImportText');
     const importSaveBtn = document.getElementById('importSaveBtn');
     const saveStatus = document.getElementById('saveStatus');
@@ -2058,6 +2448,8 @@ function initApp() {
     const catalogBtn = document.getElementById('catalogBtn');
     const catalogModal = document.getElementById('catalogModal');
     const closeCatalogModalBtn = document.getElementById('closeCatalogModal');
+    const catalogCollectedFilter = document.getElementById('catalogCollectedFilter');
+    const catalogQuickSellButton = document.getElementById('catalogQuickSell');
 
     function closeQuickActions() {
         if (!quickActionsMenu) return;
@@ -2140,7 +2532,7 @@ function initApp() {
 
     function openChancesModal() {
         if (!chancesModal || !chancesContent) return;
-        const normalChance = 100 - VARIANT_CHANCES.gold - VARIANT_CHANCES.rainbow;
+        const { normalChance, goldChance, rainbowChance, negativeChance } = getCollectionVariantChanceInfo('general');
         chancesContent.innerHTML = `
             <section class="chances-section">
                 <h3>Rarity chances</h3>
@@ -2157,8 +2549,9 @@ function initApp() {
                 <h3>Variant chances</h3>
                 <div class="chances-list">
                     <div class="chances-row"><span>Normal</span><strong>${normalChance}%</strong></div>
-                    <div class="chances-row"><span>🥇 Gold</span><strong>${VARIANT_CHANCES.gold}%</strong></div>
-                    <div class="chances-row"><span>🌈 Rainbow</span><strong>${VARIANT_CHANCES.rainbow}%</strong></div>
+                    <div class="chances-row"><span>🥇 Gold</span><strong>${goldChance}%</strong></div>
+                    <div class="chances-row"><span>🌈 Rainbow</span><strong>${rainbowChance}%</strong></div>
+                    <div class="chances-row"><span>🖤 Negative</span><strong>${negativeChance}%</strong></div>
                 </div>
             </section>
             <section class="chances-section">
@@ -2176,20 +2569,20 @@ function initApp() {
                             `).join('')}
                             ${Object.entries(VARIANT_XP).map(([variant, xp]) => `
                                 <div class="chances-row">
-                                    <span>${variant === 'gold' ? '🥇 ' : variant === 'rainbow' ? '🌈 ' : ''}${variant} bonus</span>
+                                    <span>${variant === 'gold' ? '🥇 ' : variant === 'rainbow' ? '🌈 ' : variant === 'negative' ? '🖤 ' : ''}${variant} bonus</span>
                                     <strong>+${xp} XP</strong>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
                     <div class="chances-reward-column">
-                        <h4 class="chances-subheading">Blink rewards</h4>
-                        <p class="chances-note">Earned per Banafix by rarity, plus ${LEVEL_BLINK_REWARD} Blink per level.</p>
+                        <h4 class="chances-subheading">Banafix sale values</h4>
+                        <p class="chances-note">Each Banafix has its own Blink value based on rarity. Variant bonuses multiply its value. You also earn ${LEVEL_BLINK_REWARD} Blink per level.</p>
                         <div class="chances-list">
-                            ${Object.entries(RARITY_BLINK_REWARDS).map(([rarity, blinks]) => `
+                            ${Object.entries(RARITY_BLINK_RANGES).map(([rarity, range]) => `
                                 <div class="chances-row">
                                     <span class="rarity ${rarity}">${rarity}</span>
-                                    <strong>+${blinks} Blink</strong>
+                                    <strong>${range.min}–${range.max} Blink</strong>
                                 </div>
                             `).join('')}
                         </div>
@@ -2277,7 +2670,8 @@ function initApp() {
             const rainbowInfo = group.items.find(info => info.variantKey === 'rainbow');
             const goldLevel = getCollectionUpgradeLevel(collectionKey, 'gold');
             const rainbowLevel = getCollectionUpgradeLevel(collectionKey, 'rainbow');
-            const { goldChance, rainbowChance } = getCollectionVariantChanceInfo(collectionKey);
+            const negativeLevel = getCollectionUpgradeLevel(collectionKey, 'negative');
+            const { goldChance, rainbowChance, negativeChance } = getCollectionVariantChanceInfo(collectionKey);
             const levelLabel = goldLevel === rainbowLevel
                 ? `Lv. ${goldLevel}`
                 : `🥇 ${goldLevel} · 🌈 ${rainbowLevel}`;
@@ -2321,6 +2715,25 @@ function initApp() {
                         <span class="upgrade-level">Lv. ${xpBoostLevel}</span>
                         <span class="upgrade-cost">${canUpgradeXp ? `${xpBoostCost} Blink` : 'MAX'}</span>
                         <button type="button" class="upgrade-purchase" data-xp-boost-upgrade="${collectionKey}" ${canAffordXp ? '' : 'disabled'}>${canUpgradeXp ? 'Upgrade' : 'Max level'}</button>
+                    </div>
+                </div>
+                <div class="upgrade-row negative-variant-upgrade-row">
+                    <div class="upgrade-copy">
+                        <div class="upgrade-title">Negative Banafix</div>
+                        <div class="upgrade-current-chances">
+                            <span class="upgrade-current-label">Current chance</span>
+                            <span class="upgrade-current-value negative">🖤 ${negativeChance}%</span>
+                        </div>
+                        <div class="upgrade-bonuses">
+                            <span class="upgrade-bonus negative">Unlocks a 0.5% chance in this collection</span>
+                        </div>
+                    </div>
+                    <div class="upgrade-meta">
+                        <span class="upgrade-level">${negativeLevel > 0 ? 'Unlocked' : 'Locked'}</span>
+                        <span class="upgrade-cost">${negativeLevel > 0 ? 'Purchased' : `${COLLECTION_UPGRADE_CONFIG.negative.cost} Blink`}</span>
+                        <button type="button" class="upgrade-purchase" data-negative-upgrade="${collectionKey}" ${negativeLevel > 0 || loadPlayerBlinks() < COLLECTION_UPGRADE_CONFIG.negative.cost ? 'disabled' : ''}>
+                            ${negativeLevel > 0 ? 'Unlocked' : 'Unlock'}
+                        </button>
                     </div>
                 </div>
             `;
@@ -2395,6 +2808,28 @@ function initApp() {
                 showToast(`${selectedGroup.label} XP Boost upgraded to Lv. ${level + 1}.`, 'success');
             });
         });
+
+        upgradeList.querySelectorAll('[data-negative-upgrade]').forEach(button => {
+            const collectionKey = button.getAttribute('data-negative-upgrade');
+            if (!collectionKey) return;
+            button.addEventListener('click', () => {
+                if (getCollectionUpgradeLevel(collectionKey, 'negative') > 0) return;
+                const cost = COLLECTION_UPGRADE_CONFIG.negative.cost;
+                const currentBlinks = loadPlayerBlinks();
+                if (currentBlinks < cost) {
+                    showToast('Not enough Blink for this upgrade.', 'error');
+                    return;
+                }
+
+                const state = getCollectionUpgradeState();
+                state[`${collectionKey}-negative`] = 1;
+                saveCollectionUpgrades(state);
+                savePlayerBlinks(currentBlinks - cost);
+                updateBlinkBalance();
+                renderUpgradeModal();
+                showToast(`${selectedGroup.label} Negative variant unlocked.`, 'success');
+            });
+        });
     }
 
     function openUpgradeModal() {
@@ -2411,6 +2846,298 @@ function initApp() {
         upgradeModal.classList.add('hidden');
         upgradeModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('modal-open');
+    }
+
+    function getOwnedFusionCopies() {
+        return collection.flatMap(item => {
+            const plush = getPlushByName(item.name);
+            if (!plush) return [];
+
+            const counts = getCollectedVariantCounts(item);
+            return Object.entries(counts).flatMap(([variant, count]) => (
+                Array.from({ length: count }, (_, copyIndex) => ({
+                    key: `${plush.name}|${variant}|${copyIndex}`,
+                    plush,
+                    variant
+                }))
+            ));
+        });
+    }
+
+    function refreshFusionRewardChoices(outcomes) {
+        const selectedOutcome = outcomes.find(outcome => getFusionRewardKey(outcome) === selectedFusionRewardKey);
+        const availableOutcomes = outcomes.filter(outcome => getFusionRewardKey(outcome) !== selectedFusionRewardKey);
+        const unseenOutcomes = availableOutcomes.filter(outcome => !visibleFusionRewardKeys.has(getFusionRewardKey(outcome)));
+        const slotCount = Math.max(0, 5 - (selectedOutcome ? 1 : 0));
+        const pool = unseenOutcomes.length >= slotCount ? unseenOutcomes : availableOutcomes;
+
+        for (let index = pool.length - 1; index > 0; index--) {
+            const swapIndex = Math.floor(Math.random() * (index + 1));
+            [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
+        }
+
+        visibleFusionRewardKeys.clear();
+        if (selectedOutcome) visibleFusionRewardKeys.add(selectedFusionRewardKey);
+        pool.slice(0, Math.max(0, 5 - visibleFusionRewardKeys.size))
+            .forEach(outcome => visibleFusionRewardKeys.add(getFusionRewardKey(outcome)));
+    }
+
+    function renderFusionModal() {
+        if (!fusionInventory || !fusionSummary || !fusionRewards || !fusionSubmit) return;
+
+        const ownedCopies = getOwnedFusionCopies();
+        const ownedKeys = new Set(ownedCopies.map(copy => copy.key));
+        selectedFusionCopyKeys.forEach(key => {
+            if (!ownedKeys.has(key)) selectedFusionCopyKeys.delete(key);
+        });
+        const selectedCopies = ownedCopies.filter(copy => selectedFusionCopyKeys.has(copy.key));
+        const fusionInfo = getFusionInfo(selectedCopies);
+
+        const rewardOutcomes = fusionInfo ? getFusionRewardOutcomes(fusionInfo) : [];
+        const rewardCategories = rewardOutcomes.length
+            ? getFusionRewardCategories(selectedCopies, rewardOutcomes)
+            : [];
+        const proposedOutcomes = rewardCategories.flatMap(entry => entry.rewards);
+        const poolSignature = JSON.stringify(proposedOutcomes.map(outcome => [
+            getFusionRewardKey(outcome),
+            outcome.value,
+            outcome.weight
+        ]).sort());
+        if (poolSignature !== fusionRewardPoolSignature) {
+            fusionRewardPoolSignature = poolSignature;
+            refreshFusionRewardChoices(proposedOutcomes);
+        }
+        const visibleRewardOutcomes = proposedOutcomes.filter(outcome => (
+            visibleFusionRewardKeys.has(getFusionRewardKey(outcome))
+        ));
+        const selectedOutcome = proposedOutcomes.find(outcome => getFusionRewardKey(outcome) === selectedFusionRewardKey);
+        const selectedRewardChance = selectedOutcome
+            ? getFusionRewardSuccessChance(fusionInfo, selectedOutcome)
+            : null;
+        if (!proposedOutcomes.some(outcome => getFusionRewardKey(outcome) === selectedFusionRewardKey)) {
+            selectedFusionRewardKey = null;
+        }
+        const hasSelectedReward = Boolean(selectedOutcome) && selectedCopies.length === 4;
+        if (fusionWheelSection) fusionWheelSection.hidden = !hasSelectedReward;
+        if (hasSelectedReward && fusionWheel && fusionWheelChance) {
+            const successAngle = selectedRewardChance * 3.6;
+            fusionWheel.style.background = `conic-gradient(from 0deg, #34d399 0deg ${successAngle}deg, #fb7185 ${successAngle}deg 360deg)`;
+            if (!fusionSpinning) fusionWheel.style.transform = 'rotate(0deg)';
+            fusionWheelChance.textContent = `${selectedRewardChance.toFixed(1)}%`;
+            fusionWheel.setAttribute('aria-label', `Fusion success chance ${selectedRewardChance.toFixed(1)} percent`);
+        }
+        fusionSummary.textContent = selectedCopies.length < 4
+            ? `Selected: ${selectedCopies.length}/4. Select four copies to see the Fusion odds.`
+            : fusionInfo
+                ? `Ingredient value: ${fusionInfo.totalBlink} Blink · Reward range: ${fusionInfo.minRewardBlink.toFixed(2)}–${fusionInfo.maxRewardBlink.toFixed(2)} Blink · Base chance: ${fusionInfo.chance}%${selectedRewardChance === null ? '' : ` · Chance for selected reward: ${selectedRewardChance.toFixed(1)}%`} · Variant bonus: +${fusionInfo.variantBlinkBonus}% · Choose one reward below.`
+                : 'These ingredients cannot be fused.';
+        fusionSubmit.disabled = fusionSpinning || selectedCopies.length !== 4 || !fusionInfo || rewardOutcomes.length === 0 || !selectedFusionRewardKey;
+        fusionSubmit.textContent = selectedCopies.length !== 4
+            ? `Choose 4 Banafixes (${selectedCopies.length}/4)`
+            : fusionInfo && rewardOutcomes.length > 0 && selectedFusionRewardKey
+                ? `Try Fusion · ${selectedRewardChance.toFixed(1)}% chance`
+                : rewardOutcomes.length > 0
+                    ? 'Choose a reward first'
+                    : 'No reward available';
+
+        const visibleRewardCategories = rewardCategories
+            .map(({ category, rewards }) => ({
+                category,
+                rewards: rewards.filter(outcome => visibleFusionRewardKeys.has(getFusionRewardKey(outcome)))
+            }))
+            .filter(entry => entry.rewards.length > 0);
+        fusionRewards.innerHTML = visibleRewardOutcomes.length
+            ? `<div class="fusion-rewards-toolbar">
+                    <h3 class="fusion-rewards-title">Choose one of 5 reward options worth ${fusionInfo.minRewardBlink.toFixed(2)}–${fusionInfo.maxRewardBlink.toFixed(2)} Blink (nearest available if none match)</h3>
+                    <span class="fusion-rewards-count">Showing ${visibleRewardOutcomes.length} of ${proposedOutcomes.length}</span>
+                </div>
+                ${visibleRewardCategories.map(({ category, rewards }) => {
+                    return `
+                        <section class="fusion-reward-category">
+                            <h4>${category}</h4>
+                            <div class="fusion-reward-list">
+                                ${rewards.map(outcome => `
+                                    <button class="fusion-reward-card${outcome.variant === 'normal' ? '' : ` ${outcome.variant}-card`}" type="button" data-fusion-reward="${getFusionRewardKey(outcome)}" aria-pressed="${getFusionRewardKey(outcome) === selectedFusionRewardKey}" ${fusionSpinning ? 'disabled' : ''}>
+                                        <img src="${outcome.plush.image}" alt="">
+                                        <span class="fusion-reward-name">${outcome.plush.name}</span>
+                                        <span class="fusion-reward-variant fusion-reward-variant-${outcome.variant}">${outcome.variant[0].toUpperCase() + outcome.variant.slice(1)}</span>
+                                        <span class="fusion-reward-value">${outcome.value} Blink</span>
+                                        <span class="fusion-reward-value">${getFusionRewardSuccessChance(fusionInfo, outcome).toFixed(1)}% success chance</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </section>
+                    `;
+                }).join('')}`
+            : '';
+
+        fusionInventory.innerHTML = ownedCopies.length
+            ? ownedCopies.map(({ key, plush, variant }) => {
+                const isSelected = selectedFusionCopyKeys.has(key);
+                const variantLabel = variant === 'normal' ? 'Normal' : variant[0].toUpperCase() + variant.slice(1);
+                const variantClass = variant === 'normal' ? '' : ` ${variant}-card`;
+                return `
+                    <button class="fusion-copy-card${variantClass}" type="button" data-fusion-copy="${key}" aria-pressed="${isSelected}" ${fusionSpinning || (selectedCopies.length >= 4 && !isSelected) ? 'disabled' : ''}>
+                        <img src="${plush.image}" alt="">
+                        <span class="fusion-copy-name">${plush.name}</span>
+                        <span>${plush.rarity}</span>
+                        <span class="fusion-copy-variant">${variantLabel}</span>
+                        <span class="fusion-copy-value">${getPlushSellValue(plush, variant)} Blink</span>
+                    </button>
+                `;
+            }).join('')
+            : '<div class="catalog-empty-state">You have no Banafixes to use in Fusion.</div>';
+
+        fusionRewards.querySelectorAll('[data-fusion-reward]').forEach(button => {
+            button.addEventListener('click', () => {
+                selectedFusionRewardKey = button.dataset.fusionReward;
+                renderFusionModal();
+            });
+        });
+        fusionInventory.querySelectorAll('[data-fusion-copy]').forEach(button => {
+            button.addEventListener('click', () => {
+                const key = button.dataset.fusionCopy;
+                if (selectedFusionCopyKeys.has(key)) {
+                    selectedFusionCopyKeys.delete(key);
+                } else if (selectedFusionCopyKeys.size < 4) {
+                    selectedFusionCopyKeys.add(key);
+                }
+                renderFusionModal();
+            });
+        });
+    }
+
+    function openFusionModal() {
+        if (!fusionModal) return;
+        if (fusionSpinning) return;
+        selectedFusionCopyKeys.clear();
+        visibleFusionRewardKeys.clear();
+        selectedFusionRewardKey = null;
+        fusionRewardPoolSignature = '';
+        if (fusionStatus) fusionStatus.textContent = '';
+        renderFusionModal();
+        fusionModal.classList.remove('hidden');
+        fusionModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeFusionModal() {
+        if (!fusionModal || fusionSpinning) return;
+        fusionModal.classList.add('hidden');
+        fusionModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+
+    function tryFusion() {
+        if (fusionSpinning) return;
+        const ownedCopies = getOwnedFusionCopies();
+        const selectedCopies = ownedCopies.filter(copy => selectedFusionCopyKeys.has(copy.key));
+        const fusionInfo = getFusionInfo(selectedCopies);
+        if (selectedCopies.length !== 4 || !fusionInfo) return;
+        const rewardOutcomes = getFusionRewardOutcomes(fusionInfo);
+        const proposedOutcomes = getFusionRewardCategories(selectedCopies, rewardOutcomes)
+            .flatMap(entry => entry.rewards);
+        const selectedOutcome = proposedOutcomes.find(outcome => getFusionRewardKey(outcome) === selectedFusionRewardKey);
+        if (!selectedOutcome) {
+            if (fusionStatus) fusionStatus.textContent = 'Choose one of the proposed rewards before trying Fusion.';
+            renderFusionModal();
+            return;
+        }
+
+        const requiredCounts = new Map();
+        selectedCopies.forEach(({ plush, variant }) => {
+            const key = `${plush.name}|${variant}`;
+            requiredCounts.set(key, (requiredCounts.get(key) || 0) + 1);
+        });
+        for (const [key, requiredCount] of requiredCounts) {
+            const [plushName, variant] = key.split('|');
+            const item = collection.find(entry => entry.name === plushName);
+            if (!item || getCollectedVariantCounts(item)[variant] < requiredCount) {
+                if (fusionStatus) fusionStatus.textContent = 'Your collection changed. Select the ingredients again.';
+                renderFusionModal();
+                return;
+            }
+        }
+
+        const successChance = getFusionRewardSuccessChance(fusionInfo, selectedOutcome);
+        const succeeded = Math.random() * 100 < successChance;
+        const successAngle = successChance * 3.6;
+        const wheelPosition = succeeded
+            ? Math.random() * successAngle
+            : successAngle + Math.random() * (360 - successAngle);
+        const spinRotation = 5 * 360 + (360 - wheelPosition);
+
+        fusionSpinning = true;
+        if (fusionStatus) fusionStatus.textContent = 'The wheel is spinning...';
+        if (fusionWheel) {
+            fusionWheel.style.setProperty('--spin-rotation', `${spinRotation}deg`);
+            fusionWheel.style.removeProperty('transform');
+            fusionWheel.classList.remove('spinning');
+            void fusionWheel.offsetWidth;
+            fusionWheel.classList.add('spinning');
+        }
+        if (fusionWheelCenter) {
+            fusionWheelCenter.style.setProperty('--counter-rotation', `${-spinRotation}deg`);
+        }
+        fusionSubmit.disabled = true;
+        fusionSubmit.textContent = 'Spinning...';
+        fusionInventory.querySelectorAll('button').forEach(button => { button.disabled = true; });
+        fusionRewards.querySelectorAll('button').forEach(button => { button.disabled = true; });
+        const spinDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 4200;
+        window.setTimeout(() => {
+            if (fusionWheel) {
+                fusionWheel.style.transform = `rotate(${spinRotation}deg)`;
+                fusionWheel.classList.remove('spinning');
+            }
+            completeFusion(selectedCopies, selectedOutcome, succeeded);
+        }, spinDuration);
+    }
+
+    function completeFusion(selectedCopies, selectedOutcome, succeeded) {
+        selectedCopies.forEach(({ plush, variant }) => {
+            const itemIndex = collection.findIndex(item => item.name === plush.name);
+            const item = collection[itemIndex];
+            item.count = Math.max(0, item.count - 1);
+            if (variant === 'gold') item.goldCount = Math.max(0, (Number(item.goldCount) || 0) - 1);
+            if (variant === 'rainbow') item.rainbowCount = Math.max(0, (Number(item.rainbowCount) || 0) - 1);
+            if (variant === 'negative') item.negativeCount = Math.max(0, (Number(item.negativeCount) || 0) - 1);
+            if (item.count === 0) collection.splice(itemIndex, 1);
+        });
+
+        let reward = null;
+        let rewardVariant = 'normal';
+        if (succeeded) {
+            reward = selectedOutcome.plush;
+            rewardVariant = selectedOutcome.variant;
+            const existing = collection.find(item => item.name === reward.name);
+            if (existing) {
+                existing.count = (Number(existing.count) || 0) + 1;
+                if (rewardVariant === 'gold') existing.goldCount = (Number(existing.goldCount) || 0) + 1;
+                if (rewardVariant === 'rainbow') existing.rainbowCount = (Number(existing.rainbowCount) || 0) + 1;
+                if (rewardVariant === 'negative') existing.negativeCount = (Number(existing.negativeCount) || 0) + 1;
+            } else {
+                collection.push({
+                    ...reward,
+                    count: 1,
+                    goldCount: rewardVariant === 'gold' ? 1 : 0,
+                    rainbowCount: rewardVariant === 'rainbow' ? 1 : 0,
+                    negativeCount: rewardVariant === 'negative' ? 1 : 0
+                });
+            }
+        }
+
+        saveCollection();
+        fusionSpinning = false;
+        selectedFusionCopyKeys.clear();
+        selectedFusionRewardKey = null;
+        if (fusionStatus) {
+            fusionStatus.textContent = succeeded
+                ? `Success! You got ${reward.name} (${reward.rarity}, ${rewardVariant}).`
+                : `Fusion failed. The four ingredients were consumed.`;
+        }
+        showCollection();
+        if (succeeded) awardAchievementIfNeeded();
+        renderFusionModal();
     }
 
     function openCatalogModal() {
@@ -2502,8 +3229,52 @@ function initApp() {
         catalogBtn.addEventListener('click', openCatalogModal);
     }
 
+    if (catalogCollectedFilter) {
+        catalogCollectedFilter.addEventListener('click', () => {
+            showCollectedOnlyInCatalog = !showCollectedOnlyInCatalog;
+            quickSellMode = false;
+            selectedQuickSellCopies.clear();
+            collectedCatalogPage = 0;
+            renderGallery();
+        });
+    }
+
+    if (catalogQuickSellButton) {
+        catalogQuickSellButton.addEventListener('click', () => {
+            if (!showCollectedOnlyInCatalog) return;
+            quickSellMode = !quickSellMode;
+            selectedQuickSellCopies.clear();
+            renderGallery();
+        });
+    }
+
     if (upgradeBtn) {
         upgradeBtn.addEventListener('click', openUpgradeModal);
+    }
+
+    if (fusionBtn) {
+        fusionBtn.addEventListener('click', openFusionModal);
+    }
+
+    if (closeFusionModalBtn) {
+        closeFusionModalBtn.addEventListener('click', closeFusionModal);
+    }
+
+    if (fusionSubmit) {
+        fusionSubmit.addEventListener('click', tryFusion);
+    }
+
+    if (fusionModal) {
+        fusionModal.addEventListener('click', event => {
+            if (event.target.classList.contains('news-modal-backdrop')) {
+                closeFusionModal();
+            }
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !fusionModal.classList.contains('hidden')) {
+                closeFusionModal();
+            }
+        });
     }
 
     if (closeUpgradeModalBtn) {
@@ -2692,7 +3463,7 @@ function initApp() {
 function renderInitialCrate() {
     const initialResult = document.getElementById('result');
     if (!initialResult) return;
-    const savedResults = loadSavedDrawResults();
+    const savedResults = reconcileSavedDrawResults();
     if (savedResults) {
         renderDrawCards(initialResult, savedResults, true);
     } else {
@@ -2735,10 +3506,26 @@ function getGalleryOrderedPlushes(plushes) {
 }
 
 const collapsedGallerySections = new Set();
+let showCollectedOnlyInCatalog = false;
+let quickSellMode = false;
+const selectedQuickSellCopies = new Set();
+let collectedCatalogPage = 0;
+const COLLECTED_CATALOG_PAGE_SIZE = 24;
 
 function renderGallery() {
     const gallery = document.getElementById('gallery');
     if (!gallery) return;
+    const collectedFilter = document.getElementById('catalogCollectedFilter');
+    if (collectedFilter) {
+        collectedFilter.textContent = showCollectedOnlyInCatalog ? 'Show all Banafixes' : 'Show collected only';
+        collectedFilter.setAttribute('aria-pressed', String(showCollectedOnlyInCatalog));
+    }
+    const quickSellButton = document.getElementById('catalogQuickSell');
+    if (quickSellButton) {
+        quickSellButton.hidden = !showCollectedOnlyInCatalog;
+        quickSellButton.textContent = quickSellMode ? 'Cancel quick sell' : 'Quick sell';
+        quickSellButton.setAttribute('aria-pressed', String(quickSellMode));
+    }
     const collectedNames = new Set(collection.map(item => item.name));
     const general = sortGalleryPlushes(plushies.filter(isGeneralCollection));
     const eventPlushes = sortGalleryPlushes(plushies.filter(isEventCollection));
@@ -2751,20 +3538,178 @@ function renderGallery() {
         groups[key].push(plush);
         return groups;
     }, {});
+    const visibleGeneral = showCollectedOnlyInCatalog
+        ? general.filter(plush => collectedNames.has(plush.name))
+        : general;
+    const visibleEventGroups = Object.fromEntries(
+        Object.entries(eventGroups).map(([group, groupPlushes]) => [
+            group,
+            showCollectedOnlyInCatalog
+                ? groupPlushes.filter(plush => collectedNames.has(plush.name))
+                : groupPlushes
+        ])
+    );
+    const totalCollectionValue = collection.reduce((total, item) => {
+        const plush = getPlushByName(item.name);
+        if (!plush) return total;
 
-    function renderGalleryCard(plush, hidden, extraClasses = '') {
-        const goldCount = collection.find(item => item.name === plush.name)?.goldCount || 0;
-        const rainbowCount = collection.find(item => item.name === plush.name)?.rainbowCount || 0;
+        const counts = getCollectedVariantCounts(item);
+        return total
+            + counts.normal * getPlushSellValue(plush, 'normal')
+            + counts.gold * getPlushSellValue(plush, 'gold')
+            + counts.rainbow * getPlushSellValue(plush, 'rainbow')
+            + counts.negative * getPlushSellValue(plush, 'negative');
+    }, 0);
+
+    function renderGalleryCard(plush, hidden, extraClasses = '', variant = null, quickSellKey = null) {
+        const collectedItem = collection.find(item => item.name === plush.name);
+        const variantCounts = getCollectedVariantCounts(collectedItem);
+        const cardVariant = variant || (variantCounts.normal > 0
+            ? 'normal'
+            : variantCounts.gold > 0
+                ? 'gold'
+                : variantCounts.rainbow > 0
+                    ? 'rainbow'
+                    : variantCounts.negative > 0
+                        ? 'negative'
+                        : null);
         const safeName = plush.name.replace(/'/g, "\\'");
-        const clickAttr = `onclick="showPlushFullscreen('${safeName}')"`;
-        const variantClass = rainbowCount > 0 ? ' rainbow-card' : goldCount > 0 ? ' gold-card' : '';
+        const quickSellSelected = quickSellMode && quickSellKey !== null && selectedQuickSellCopies.has(quickSellKey);
+        const clickAttr = quickSellMode && quickSellKey !== null
+            ? `data-quick-sell-key="${quickSellKey}" role="button" tabindex="0" aria-pressed="${quickSellSelected}"`
+            : `onclick="showPlushFullscreen('${safeName}'${cardVariant ? `, '${cardVariant}'` : ''})"`;
+        const variantClass = cardVariant === 'rainbow' ? ' rainbow-card' : cardVariant === 'gold' ? ' gold-card' : cardVariant === 'negative' ? ' negative-card' : '';
+        const sellValueMarkup = showCollectedOnlyInCatalog
+            ? `<div class="gallery-meta gallery-sell-value">Worth ${getPlushSellValue(plush, cardVariant || 'normal')} Blink</div>`
+            : '';
         return `
-            <div class="gallery-card${variantClass}${hidden ? ' hidden-card disabled-card' : ''}${extraClasses ? ' ' + extraClasses : ''}" ${clickAttr}>
+            <div class="gallery-card${variantClass}${hidden ? ' hidden-card disabled-card' : ''}${extraClasses ? ' ' + extraClasses : ''}${quickSellMode && quickSellKey !== null ? ` quick-sell-selectable${quickSellSelected ? ' quick-sell-selected' : ''}` : ''}" ${clickAttr}>
+                ${quickSellMode && quickSellKey !== null ? `<span class="quick-sell-selection-badge">${quickSellSelected ? 'Selected' : 'Select'}</span>` : ''}
                 <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
                 <div class="gallery-name">${hidden ? '???' : plush.name}</div>
                 <div class="rarity ${plush.rarity}">${hidden ? '' : plush.rarity}</div>
+                ${hidden ? '' : sellValueMarkup}
             </div>
         `;
+    }
+
+    function renderGalleryCards(plushesToRender, extraClasses = '') {
+        return plushesToRender.map(plush => {
+            const collectedItem = collection.find(item => item.name === plush.name);
+            const counts = getCollectedVariantCounts(collectedItem);
+            const variants = [
+                ...Array(counts.normal).fill('normal'),
+                ...Array(counts.gold).fill('gold'),
+                ...Array(counts.rainbow).fill('rainbow'),
+                ...Array(counts.negative).fill('negative')
+            ];
+            return variants.map(variant => renderGalleryCard(plush, false, extraClasses, variant)).join('');
+        }).join('');
+    }
+
+    if (showCollectedOnlyInCatalog) {
+        const collectedPlushes = sortGalleryPlushes(plushies.filter(plush => collectedNames.has(plush.name)));
+        const collectedCards = collectedPlushes.flatMap(plush => {
+            const counts = getCollectedVariantCounts(collection.find(item => item.name === plush.name));
+            return [
+                ...Array(counts.normal).fill('normal'),
+                ...Array(counts.gold).fill('gold'),
+                ...Array(counts.rainbow).fill('rainbow'),
+                ...Array(counts.negative).fill('negative')
+            ].map((variant, copyIndex) => ({
+                plush,
+                variant,
+                selectionKey: `${plush.name}-${variant}-${copyIndex}`
+            }));
+        });
+        const selectedCards = collectedCards.filter(card => selectedQuickSellCopies.has(card.selectionKey));
+        const selectedSellValue = selectedCards.reduce(
+            (total, { plush, variant }) => total + getPlushSellValue(plush, variant),
+            0
+        );
+        const pageCount = Math.max(1, Math.ceil(collectedCards.length / COLLECTED_CATALOG_PAGE_SIZE));
+        collectedCatalogPage = Math.min(collectedCatalogPage, pageCount - 1);
+        const pageStart = collectedCatalogPage * COLLECTED_CATALOG_PAGE_SIZE;
+        const visibleCards = collectedCards.slice(pageStart, pageStart + COLLECTED_CATALOG_PAGE_SIZE);
+        const pageButtons = Array.from({ length: pageCount }, (_, index) => `
+            <button class="catalog-page-button${index === collectedCatalogPage ? ' active' : ''}" type="button" data-gallery-page="${index}" aria-label="Page ${index + 1}" aria-current="${index === collectedCatalogPage ? 'page' : 'false'}">${index + 1}</button>
+        `).join('');
+        const pagination = pageCount > 1 ? `
+            <nav class="catalog-pagination" aria-label="Collected Banafix pages">
+                <button class="catalog-page-button" type="button" data-gallery-page="${collectedCatalogPage - 1}" ${collectedCatalogPage === 0 ? 'disabled' : ''}>Previous</button>
+                ${pageButtons}
+                <button class="catalog-page-button" type="button" data-gallery-page="${collectedCatalogPage + 1}" ${collectedCatalogPage >= pageCount - 1 ? 'disabled' : ''}>Next</button>
+            </nav>
+        ` : '';
+        const totalItemsCollected = collection.reduce((sum, item) => sum + (item.count || 0), 0);
+
+        gallery.innerHTML = `
+            <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${collectedNames.size}/${plushies.length} unique · Collection value: ${totalCollectionValue} Blink</div>
+            ${quickSellMode ? `<div class="quick-sell-toolbar">
+                <span>${selectedCards.length} selected · ${selectedSellValue} Blink</span>
+                <button class="quick-sell-action" type="button" data-quick-sell-action ${selectedCards.length ? '' : 'disabled'}>Sell selected</button>
+            </div>` : ''}
+            ${collectedCards.length
+                ? `<div class="gallery-grid catalog-collected-grid">${visibleCards.map(({ plush, variant, selectionKey }) => renderGalleryCard(plush, false, '', variant, selectionKey)).join('')}</div>
+                    <div class="catalog-page-summary">Page ${collectedCatalogPage + 1} of ${pageCount} · ${pageStart + 1}–${Math.min(pageStart + COLLECTED_CATALOG_PAGE_SIZE, collectedCards.length)} of ${collectedCards.length} Banafixes</div>
+                    ${pagination}`
+                : '<div class="catalog-empty-state">You have not collected any Banafixes yet.</div>'}
+        `;
+
+        gallery.querySelectorAll('[data-quick-sell-key]').forEach(card => {
+            const toggleSelection = () => {
+                const key = card.dataset.quickSellKey;
+                if (selectedQuickSellCopies.has(key)) {
+                    selectedQuickSellCopies.delete(key);
+                } else {
+                    selectedQuickSellCopies.add(key);
+                }
+                renderGallery();
+            };
+            card.addEventListener('click', toggleSelection);
+            card.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    toggleSelection();
+                }
+            });
+        });
+
+        const sellSelectedButton = gallery.querySelector('[data-quick-sell-action]');
+        if (sellSelectedButton) {
+            sellSelectedButton.addEventListener('click', () => {
+                let soldCount = 0;
+                let failedCount = 0;
+                let earnedBlinks = 0;
+                selectedCards.forEach(({ plush, variant }) => {
+                    const sellValue = sellCollectedPlush(plush.name, variant);
+                    if (sellValue !== false) {
+                        soldCount += 1;
+                        earnedBlinks += sellValue;
+                    } else {
+                        failedCount += 1;
+                    }
+                });
+                selectedQuickSellCopies.clear();
+                renderGallery();
+                if (soldCount > 0 || failedCount > 0) {
+                    const message = failedCount > 0
+                        ? `${soldCount} Banafix${soldCount === 1 ? '' : 'es'} sold for ${earnedBlinks} Blink; ${failedCount} no longer available.`
+                        : `${soldCount} Banafix${soldCount === 1 ? '' : 'es'} sold for ${earnedBlinks} Blink.`;
+                    showToast(message, failedCount > 0 ? 'error' : 'success');
+                }
+            });
+        }
+
+        gallery.querySelectorAll('[data-gallery-page]').forEach(button => {
+            button.addEventListener('click', () => {
+                const nextPage = Number(button.dataset.galleryPage);
+                if (!Number.isInteger(nextPage) || nextPage < 0 || nextPage >= pageCount || nextPage === collectedCatalogPage) return;
+                collectedCatalogPage = nextPage;
+                renderGallery();
+            });
+        });
+        return;
     }
 
     function collectionProgress(groupPlushes) {
@@ -2776,10 +3721,12 @@ function renderGallery() {
     const totalUniqueCollected = collectedNames.size;
     const totalUnique = plushies.length;
     const generalProgress = collectionProgress(general);
+    const hasVisibleBanafixes = visibleGeneral.length > 0
+        || Object.values(visibleEventGroups).some(groupPlushes => groupPlushes.length > 0);
 
     gallery.innerHTML = `
-        <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${totalUniqueCollected}/${totalUnique} unique</div>
-        <div class="gallery-section">
+        <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${totalUniqueCollected}/${totalUnique} unique · Collection value: ${totalCollectionValue} Blink</div>
+        ${visibleGeneral.length ? `<div class="gallery-section">
             <h4 class="gallery-section-heading">
                 <button class="collection-toggle general-collection-title" type="button" data-collection-toggle data-collection-key="general" data-collection-label="General collection" aria-expanded="true" aria-label="Collapse General collection">
                     <img src="images/General.png" alt="General collection">
@@ -2790,15 +3737,18 @@ function renderGallery() {
             <div class="gallery-section-content">
                 <div class="event-note">General collection is always available in the gallery.</div>
                 <div class="gallery-grid">
-                    ${general.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
+                    ${showCollectedOnlyInCatalog
+                        ? renderGalleryCards(visibleGeneral)
+                        : visibleGeneral.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
                 </div>
             </div>
-        </div>
+        </div>` : ''}
         ${Object.keys(eventGroups).map((group, index) => {
             const sectionKey = `event-${index}`;
             const enabledGroup = group.startsWith('🍹') ? sunburst : group.startsWith('👑') ? legend :group.startsWith('🌮') ? taco : false;
-            const groupPlushes = eventGroups[group];
-            const progress = collectionProgress(groupPlushes);
+            const groupPlushes = visibleEventGroups[group];
+            if (!groupPlushes.length) return '';
+            const progress = collectionProgress(eventGroups[group]);
             const collectionBadge = group.startsWith('👑')
                 ? { src: 'images/Legends.png', alt: 'Legends collection' }
                 : group.startsWith('🍹')
@@ -2827,16 +3777,19 @@ function renderGallery() {
                 <div class="gallery-section-content">
                     <div class="event-note">${note}</div>
                     <div class="gallery-grid ${enabledGroup ? '' : 'disabled'}">
-                        ${groupPlushes.map(p => {
-                            const hidden = !collectedNames.has(p.name);
-                            const extraClasses = enabledGroup ? '' : 'disabled-card';
-                            return renderGalleryCard(p, hidden, extraClasses);
-                        }).join('')}
+                        ${showCollectedOnlyInCatalog
+                            ? renderGalleryCards(groupPlushes, enabledGroup ? '' : 'disabled-card')
+                            : groupPlushes.map(p => {
+                                const hidden = !collectedNames.has(p.name);
+                                const extraClasses = enabledGroup ? '' : 'disabled-card';
+                                return renderGalleryCard(p, hidden, extraClasses);
+                            }).join('')}
                     </div>
                 </div>
             </div>
             `;
         }).join('')}
+        ${hasVisibleBanafixes ? '' : '<div class="catalog-empty-state">You have not collected any Banafixes yet.</div>'}
     `;
 
     gallery.querySelectorAll('[data-collection-toggle]').forEach(toggle => {
@@ -2875,25 +3828,35 @@ function hideFullscreenPlush() {
     }
 }
 
-function showPlushFullscreen(plushName) {
+function showPlushFullscreen(plushName, selectedVariant = null) {
     const plush = getPlushByName(plushName);
     if (!plush) return;
     const collectedItem = collection.find(item => item.name === plush.name);
     const collectedCount = collectedItem?.count || 0;
-    const goldCount = collectedItem?.goldCount || 0;
-    const rainbowCount = collectedItem?.rainbowCount || 0;
-    const activeVariant = rainbowCount > 0 ? 'rainbow' : goldCount > 0 ? 'gold' : 'normal';
+    const variantCounts = getCollectedVariantCounts(collectedItem);
+    const goldCount = variantCounts.gold;
+    const rainbowCount = variantCounts.rainbow;
+    const negativeCount = variantCounts.negative;
+    const availableVariants = Object.entries(variantCounts).filter(([, count]) => count > 0);
+    const activeVariant = selectedVariant && variantCounts[selectedVariant] > 0
+        ? selectedVariant
+        : availableVariants[0]?.[0] || 'normal';
     const drawChance = getPlushVariantChance(plush.name, activeVariant);
+    const sellValue = getPlushSellValue(plush, activeVariant);
     const chanceLabel = activeVariant === 'rainbow'
         ? 'Rainbow variant chance'
         : activeVariant === 'gold'
             ? 'Gold variant chance'
+            : activeVariant === 'negative'
+                ? 'Negative variant chance'
             : 'Normal variant chance';
     hideFullscreenPlush();
 
-    const fullscreenVariantClass = rainbowCount > 0
+    const fullscreenVariantClass = activeVariant === 'negative'
+        ? ' negative-border'
+        : activeVariant === 'rainbow'
         ? ' rainbow-border'
-        : goldCount > 0
+        : activeVariant === 'gold'
             ? ' gold-border'
             : '';
     const overlay = document.createElement('div');
@@ -2927,7 +3890,30 @@ function showPlushFullscreen(plushName) {
                             <span>Rainbow variants</span>
                             <strong>${rainbowCount}</strong>
                         </div>
+                        <div class="fullscreen-stat">
+                            <span>Negative variants</span>
+                            <strong>${negativeCount}</strong>
+                        </div>
                     </div>
+                    ${collectedCount > 0 ? `
+                        <div class="fullscreen-sell">
+                            <label for="fullscreenSellVariant">Copy to sell</label>
+                            <select id="fullscreenSellVariant">
+                                ${availableVariants.map(([variant, count]) => `
+                                    <option value="${variant}"${variant === activeVariant ? ' selected' : ''}>
+                                        ${variant === 'gold' ? '🥇 Gold' : variant === 'rainbow' ? '🌈 Rainbow' : variant === 'negative' ? '🖤 Negative' : 'Normal'} (${count})
+                                    </option>
+                                `).join('')}
+                            </select>
+                            <div class="fullscreen-stat">
+                                <span>Sell value</span>
+                                <strong id="fullscreenSellValue">${sellValue} Blink</strong>
+                            </div>
+                            <button id="sellPlushBtn" class="sell-plush-button" type="button" data-plush-name="${plush.name}" data-sell-value="${sellValue}">
+                                Sell for ${sellValue} Blink
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         </div>
@@ -2938,6 +3924,32 @@ function showPlushFullscreen(plushName) {
             hideFullscreenPlush();
         }
     });
+    const sellButton = overlay.querySelector('#sellPlushBtn');
+    const sellVariantSelect = overlay.querySelector('#fullscreenSellVariant');
+    if (sellButton && sellVariantSelect) {
+        sellVariantSelect.addEventListener('change', () => {
+            const variant = sellVariantSelect.value;
+            const variantSellValue = getPlushSellValue(plush, variant);
+            const variantClass = variant === 'rainbow' ? 'rainbow-border' : variant === 'gold' ? 'gold-border' : variant === 'negative' ? 'negative-border' : '';
+            const fullscreenCard = overlay.querySelector('.fullscreen-card');
+            fullscreenCard.classList.remove('rainbow-border', 'gold-border', 'negative-border');
+            if (variantClass) fullscreenCard.classList.add(variantClass);
+            overlay.querySelector('#fullscreenSellValue').textContent = `${variantSellValue} Blink`;
+            sellButton.dataset.sellValue = String(variantSellValue);
+            sellButton.textContent = `Sell for ${variantSellValue} Blink`;
+        });
+        sellButton.addEventListener('click', () => {
+            const soldValue = sellCollectedPlush(plush.name, sellVariantSelect.value);
+            if (soldValue === false) {
+                showToast('That Banafix copy is no longer available.', 'error');
+                return;
+            }
+            refreshSavedDrawResultButtons();
+            renderGallery();
+            hideFullscreenPlush();
+            showToast(`${plush.name} sold for ${soldValue} Blink.`, 'success');
+        });
+    }
 }
 
 function updateTimer() {
@@ -2969,6 +3981,38 @@ setInterval(() => {
     refreshCrateState();
     updateFreeCrateButton();
 }, 1000);
+
+window.addEventListener('storage', event => {
+    if (event.key === 'collection') {
+        collection = loadCollection();
+        refreshSavedDrawResultButtons();
+        renderGallery();
+    }
+
+    if (event.key === 'lastDrawResults') {
+        const resultEl = document.getElementById('result');
+        const savedResults = reconcileSavedDrawResults();
+        if (resultEl && savedResults) {
+            renderDrawCards(resultEl, savedResults, true);
+        } else {
+            refreshCrateState();
+        }
+    }
+
+    if (event.key === 'blinks') {
+        updateBlinkBalance();
+    }
+
+    if (event.key === 'freeCrateCount') {
+        freeCrateCount = loadFreeCrateCount();
+        updateFreeCrateButton();
+    }
+
+    if (event.key === 'lastDraw') {
+        updateTimer();
+    }
+});
+
 updateTimer();
 refreshCrateState();
 

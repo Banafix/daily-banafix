@@ -60,7 +60,7 @@
             <span class="level-reward-icon" aria-hidden="true">🎁</span>
             <div>
                 <strong id="levelRewardTitle"></strong>
-                <div id="levelRewardDescription">+1 free crate · +2 Blink</div>
+                <div id="levelRewardDescription">+1 free draw · +2 Blink</div>
             </div>
         </div>
     </div>
@@ -80,6 +80,10 @@
                 <span class="game-menu-action-icon" aria-hidden="true">⬆️</span>
                 <span class="game-menu-action-label">Upgrades</span>
             </button>
+            <button id="fusionBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Fusion" title="Fusion" aria-haspopup="dialog" aria-controls="fusionModal">
+                <span class="game-menu-action-icon" aria-hidden="true">🧪</span>
+                <span class="game-menu-action-label">Fusion</span>
+            </button>
             <button id="achievementsBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Achievements" title="Achievements">
                 <span class="game-menu-action-icon" aria-hidden="true">🏆</span>
                 <span class="game-menu-action-label">Achievements</span>
@@ -87,10 +91,6 @@
             <button id="catalogBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Banafix Catalog" title="Banafix Catalog" aria-haspopup="dialog" aria-controls="catalogModal">
                 <span class="game-menu-action-icon" aria-hidden="true">📚</span>
                 <span class="game-menu-action-label">Catalog</span>
-            </button>
-            <button id="calendarBtn" class="game-menu-action" type="button" aria-label="Calendar" title="Calendar" aria-haspopup="dialog" aria-controls="calendarModal">
-                <span class="game-menu-action-icon" aria-hidden="true">📅</span>
-                <span class="game-menu-action-label">Calendar</span>
             </button>
             <button class="game-menu-action under-construction-action" type="button" aria-label="Under construction" title="Under construction" disabled>
                 <span class="game-menu-action-icon" aria-hidden="true">🛠️</span>
@@ -119,18 +119,32 @@
         <h2 id="newsModalTitle">Latest news 📢</h2>
         <div class="news-card news-modal-card news-feature-card">
             <div class="news-feature-topline">
-                <span>GAME UPDATE</span>
+                <span>BIG UPDATE</span>
+                <time datetime="2026-11-04">04 NOV 2026</time>
+            </div>
+            <h3>Fusion & Collection Overhaul</h3>
+            <ul class="news-feature-grid">
+                <li><span class="news-feature-icon" aria-hidden="true">🧪</span><div><strong>Fusion</strong><span>Combine four Banafixes and choose a reward to try for. The chance of success depends on the Blink value of your ingredients and reward.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🖤</span><div><strong>Negative variant</strong><span>A new Negative variant is available through collection upgrades, with a 0.5% chance once unlocked.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">📚</span><div><strong>Catalog & inventory</strong><span>Browse your Banafix collection in the refreshed catalog, manage the Banafixes you own, and sell Banafixes for Blink.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🎨</span><div><strong>UI refresh</strong><span>The Game Menu, upgrades and other screens have a refreshed look and a more consistent style.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">📅</span><div><strong>Event calendar</strong><span>Upcoming weekly events and Sunburst seasons are now shown below the draws on the home screen.</span></div></li>
+            </ul>
+        </div>
+        <div class="news-card news-modal-card news-feature-card">
+            <div class="news-feature-topline">
+                <span>BIG UPDATE</span>
                 <time datetime="2026-10-05">05 OCT 2026</time>
             </div>
             <h3>Blink & Upgrade Update</h3>
             <ul class="news-feature-grid">
                 <li>
                     <span class="news-feature-icon" aria-hidden="true">🎲</span>
-                    <div><strong>Collection draws</strong><span>Choose a collection before opening a crate. Each card shows its XP and Blink rewards.</span></div>
+                    <div><strong>Collection draws</strong><span>Choose a collection before opening a draw. Each card shows its XP rewards.</span></div>
                 </li>
                 <li>
                     <span class="news-feature-icon" aria-hidden="true">✨</span>
-                    <div><strong>Blink currency</strong><span>Earn Blink by rarity, plus 2 Blink for every player level.</span></div>
+                    <div><strong>Blink currency</strong><span>Sell collected Banafixes for Blink, and earn 2 Blink for every player level.</span></div>
                 </li>
                 <li>
                     <span class="news-feature-icon" aria-hidden="true">⬆️</span>
@@ -151,8 +165,8 @@
             <ul class="news-feature-grid">
                 <li><span class="news-feature-icon" aria-hidden="true">🎴</span><div><strong>Three Banafixes</strong><span>Every draw reveals three cards one at a time, with a short pause between them.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant effects</strong><span>Normal, Gold and Rainbow cards flash in their variant colors.</span></div></li>
-                <li><span class="news-feature-icon" aria-hidden="true">🕛</span><div><strong>Daily results</strong><span>Results stay visible until the next Poland-time reset or another crate is opened.</span></div></li>
-                <li><span class="news-feature-icon" aria-hidden="true">💾</span><div><strong>Save data</strong><span>Export or import your collection, XP, crates, achievements and draw progress.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🕛</span><div><strong>Daily results</strong><span>Results stay visible until the next Poland-time reset or another draw is opened.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">💾</span><div><strong>Save data</strong><span>Export or import your collection, XP, draws, achievements and draw progress.</span></div></li>
             </ul>
         </div>
         <div class="news-card news-modal-card news-feature-card">
@@ -177,14 +191,14 @@
                 <li><span class="news-feature-icon" aria-hidden="true">🏆</span><div><strong>Achievements</strong><span>Six achievements are available to complete.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">🎉</span><div><strong>9 new Banafixes</strong><span>Expand your collection with nine new designs.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">🌮</span><div><strong>Taco Tuesday</strong><span>A new event collection joins the game.</span></div></li>
-                <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant XP & fixes</strong><span>Gold and Rainbow award bonus XP. Daily crate timing and gallery text were fixed.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant XP & fixes</strong><span>Gold and Rainbow award bonus XP. Daily draw timing and gallery text were fixed.</span></div></li>
             </ul>
         </div>
         <div class="news-card news-modal-card">
             <h3>Update 1.1</h3>
             <img src="images/update1.png" alt="Update 1.1" class="news-image">
             <ul>
-                Now, for each new level you gain, you get one free crete that you can use whenever you want.
+                Now, for each new level you gain, you get one free draw that you can use whenever you want.
                 ps. I recommend saving it for events
             </ul>
         </div>
@@ -246,6 +260,45 @@
     </div>
 </div>
 
+<div id="fusionModal" class="news-modal hidden" aria-hidden="true">
+    <div class="news-modal-backdrop"></div>
+    <div class="news-modal-dialog fusion-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fusionModalTitle">
+        <button id="closeFusionModal" class="news-modal-close" aria-label="Close">×</button>
+        <h2 id="fusionModalTitle">Fusion</h2>
+        <p class="fusion-instructions">Pick four ingredients, then choose your reward. Higher-value rewards are harder to fuse. The wheel shows your exact chance; ingredients are consumed either way.</p>
+        <div id="fusionSummary" class="fusion-summary" aria-live="polite"></div>
+        <section class="fusion-panel">
+            <div class="fusion-section-heading">
+                <span>1</span>
+                <div><h3>Choose 4 ingredients</h3><p>Their combined Blink value sets the reward range.</p></div>
+            </div>
+            <div id="fusionInventory" class="fusion-inventory"></div>
+        </section>
+        <section id="fusionWheelSection" class="fusion-wheel-section" hidden aria-live="polite">
+            <h3>Fusion chance</h3>
+            <div class="fusion-wheel-layout">
+                <div class="fusion-wheel-wrap">
+                    <span class="fusion-wheel-pointer" aria-hidden="true"></span>
+                    <div id="fusionWheel" class="fusion-wheel" role="img" aria-label="Fusion chance wheel">
+                        <div class="fusion-wheel-center">
+                            <strong id="fusionWheelChance">0%</strong>
+                            <span>SUCCESS</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="fusion-wheel-info">
+                    <p>The wheel decides whether your selected reward is won.</p>
+                    <div class="fusion-wheel-legend"><span class="fusion-wheel-dot success"></span> Win</div>
+                    <div class="fusion-wheel-legend"><span class="fusion-wheel-dot failure"></span> Fail</div>
+                </div>
+            </div>
+        </section>
+        <div id="fusionRewards" class="fusion-rewards" aria-live="polite"></div>
+        <button id="fusionSubmit" class="fusion-submit" type="button" disabled>Choose 4 Banafixes</button>
+        <div id="fusionStatus" class="fusion-status" role="status" aria-live="polite"></div>
+    </div>
+</div>
+
 <div id="saveModal" class="news-modal hidden" aria-hidden="true">
     <div class="news-modal-backdrop"></div>
     <div class="news-modal-dialog save-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="saveModalTitle">
@@ -272,6 +325,11 @@
     <div class="news-modal-dialog catalog-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="catalogModalTitle">
         <button id="closeCatalogModal" class="news-modal-close" aria-label="Close">×</button>
         <h2 id="catalogModalTitle">Banafix Catalog</h2>
+        <div class="blink-balance upgrade-blink-balance" aria-label="Blink balance"><span aria-hidden="true">✨</span><span data-blink-count>0</span><span>Blink</span></div>
+        <div class="catalog-controls">
+            <button id="catalogQuickSell" class="catalog-filter-button" type="button" aria-pressed="false" hidden>Quick sell</button>
+            <button id="catalogCollectedFilter" class="catalog-filter-button" type="button" aria-pressed="false">Show collected only</button>
+        </div>
         <div id="gallery" style="margin:10px;"></div>
     </div>
 </div>
@@ -279,13 +337,18 @@
 <h1>Daily Banafix</h1>
 
 <div class="draw-controls">
-    <button id="freeCrateBtn" class="free-crate-button">Open free crate <span id="freeCrateCount">0</span></button>
+    <button id="freeCrateBtn" class="free-crate-button">Open free draw <span id="freeCrateCount">0</span></button>
     <button id="gameMenuBtn" class="draw-action-icon game-menu-btn" type="button" aria-label="Game menu" title="Game menu" aria-haspopup="dialog" aria-controls="gameMenuModal" aria-expanded="false">☰</button>
 </div>
 
 <p id="timer"></p>
 
 <div id="result"></div>
+
+<section id="homeCalendar" class="home-calendar" aria-labelledby="homeCalendarTitle">
+    <h2 id="homeCalendarTitle">Event calendar</h2>
+    <div id="homeCalendarContent"></div>
+</section>
 
 
 <script src="script.js"></script>
