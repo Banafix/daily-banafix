@@ -28,18 +28,19 @@
     </div>
 </div>
 
-<div id="achievementsModal" class="achievements-modal hidden" aria-hidden="true">
-    <div class="achievements-modal-backdrop"></div>
-    <div id="achievementsPanel" class="achievements-panel" role="dialog" aria-modal="true" aria-labelledby="achievementsTitle">
-        <button id="closeAchievementsModal" class="news-modal-close" aria-label="Close">×</button>
-        <h3 id="achievementsTitle">Achievements</h3>
-        <div id="achievementsList"></div>
+<div id="stickersModal" class="news-modal stickers-modal hidden" aria-hidden="true">
+    <div class="news-modal-backdrop stickers-modal-backdrop"></div>
+    <div id="stickersPanel" class="news-modal-dialog fusion-modal-dialog stickers-panel" role="dialog" aria-modal="true" aria-labelledby="stickersTitle">
+        <button id="closeStickersModal" class="news-modal-close" aria-label="Close">×</button>
+        <h3 id="stickersTitle">Banafix Sticker Album</h3>
+        <p class="stickers-intro">Complete each challenge to unlock its sticker and display it on the home screen. Some stickers also award free draws.</p>
+        <div id="stickersList"></div>
     </div>
 </div>
 
 <div id="levelProgressModal" class="news-modal hidden" aria-hidden="true">
     <div class="news-modal-backdrop"></div>
-    <div class="news-modal-dialog level-progress-dialog" role="dialog" aria-modal="true" aria-labelledby="levelProgressTitle">
+    <div class="news-modal-dialog fusion-modal-dialog level-progress-dialog" role="dialog" aria-modal="true" aria-labelledby="levelProgressTitle">
         <button id="closeLevelProgressModal" class="news-modal-close" aria-label="Close">×</button>
         <h2 id="levelProgressTitle">Level progress</h2>
         <div class="level-progress-summary">
@@ -84,9 +85,9 @@
                 <span class="game-menu-action-icon" aria-hidden="true">🧪</span>
                 <span class="game-menu-action-label">Fusion</span>
             </button>
-            <button id="achievementsBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Achievements" title="Achievements">
-                <span class="game-menu-action-icon" aria-hidden="true">🏆</span>
-                <span class="game-menu-action-label">Achievements</span>
+            <button id="stickersBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Stickers" title="Stickers">
+                <span class="game-menu-action-icon" aria-hidden="true">🏷️</span>
+                <span class="game-menu-action-label">Stickers</span>
             </button>
             <button id="catalogBtn" class="draw-action-icon game-menu-action" type="button" aria-label="Banafix Catalog" title="Banafix Catalog" aria-haspopup="dialog" aria-controls="catalogModal">
                 <span class="game-menu-action-icon" aria-hidden="true">📚</span>
@@ -117,6 +118,23 @@
     <div class="news-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="newsModalTitle">
         <button id="closeNewsModal" class="news-modal-close" aria-label="Close">×</button>
         <h2 id="newsModalTitle">Latest news 📢</h2>
+        <div class="news-card news-modal-card news-feature-card">
+            <div class="news-feature-topline">
+                <span>SMALL UPDATE</span>
+                <time datetime="2026-10-05">07 OCT 2026</time>
+            </div>
+            <h3>achievement update</h3>
+            <ul class="news-feature-grid">
+                <li>
+                    <span class="news-feature-icon" aria-hidden="true">🧩</span>
+                    <div><strong>Stickers</strong><span>A new way to collect achievements.</span></div>
+                </li>
+                <li>
+                    <span class="news-feature-icon" aria-hidden="true">✨</span>
+                    <div><strong>2x exp event</strong><span>New event every 20 days.</span></div>
+                </li>
+            </ul>
+        </div>
         <div class="news-card news-modal-card news-feature-card">
             <div class="news-feature-topline">
                 <span>BIG UPDATE</span>
@@ -166,7 +184,7 @@
                 <li><span class="news-feature-icon" aria-hidden="true">🎴</span><div><strong>Three Banafixes</strong><span>Every draw reveals three cards one at a time, with a short pause between them.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant effects</strong><span>Normal, Gold and Rainbow cards flash in their variant colors.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">🕛</span><div><strong>Daily results</strong><span>Results stay visible until the next Poland-time reset or another draw is opened.</span></div></li>
-                <li><span class="news-feature-icon" aria-hidden="true">💾</span><div><strong>Save data</strong><span>Export or import your collection, XP, draws, achievements and draw progress.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">💾</span><div><strong>Save data</strong><span>Export or import your collection, XP, draws, stickers and draw progress.</span></div></li>
             </ul>
         </div>
         <div class="news-card news-modal-card news-feature-card">
@@ -182,13 +200,13 @@
         </div>
         <div class="news-card news-modal-card news-feature-card">
             <div class="news-feature-topline">
-                <span>ACHIEVEMENTS & DROP</span>
+                <span>STICKERS & DROP</span>
                 <span>UPDATE 1.2</span>
             </div>
-            <h3>Achievements Update & Drop #2</h3>
+            <h3>Stickers Update & Drop #2</h3>
             <img src="images/update2.png" alt="Update 1.2" class="news-image">
             <ul class="news-feature-grid">
-                <li><span class="news-feature-icon" aria-hidden="true">🏆</span><div><strong>Achievements</strong><span>Six achievements are available to complete.</span></div></li>
+                <li><span class="news-feature-icon" aria-hidden="true">🏷️</span><div><strong>Stickers</strong><span>Complete collection and draw challenges to unlock stickers for your home screen.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">🎉</span><div><strong>9 new Banafixes</strong><span>Expand your collection with nine new designs.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">🌮</span><div><strong>Taco Tuesday</strong><span>A new event collection joins the game.</span></div></li>
                 <li><span class="news-feature-icon" aria-hidden="true">✨</span><div><strong>Variant XP & fixes</strong><span>Gold and Rainbow award bonus XP. Daily draw timing and gallery text were fixed.</span></div></li>
@@ -225,7 +243,7 @@
                 <li>💾 Collection saved automatically in your browser.</li>
                 🚧 Coming soon:
                 <li>⭐ items</li>
-                <li>🏆 Achievements</li>
+                <li>🏷️ Stickers</li>
             </ul>
         </div>
         
@@ -322,7 +340,7 @@
 
 <div id="catalogModal" class="news-modal hidden" aria-hidden="true">
     <div class="news-modal-backdrop"></div>
-    <div class="news-modal-dialog catalog-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="catalogModalTitle">
+    <div class="news-modal-dialog fusion-modal-dialog catalog-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="catalogModalTitle">
         <button id="closeCatalogModal" class="news-modal-close" aria-label="Close">×</button>
         <h2 id="catalogModalTitle">Banafix Catalog</h2>
         <div class="blink-balance upgrade-blink-balance" aria-label="Blink balance"><span aria-hidden="true">✨</span><span data-blink-count>0</span><span>Blink</span></div>
@@ -333,6 +351,8 @@
         <div id="gallery" style="margin:10px;"></div>
     </div>
 </div>
+
+<div id="homeStickers" aria-hidden="true"></div>
 
 <h1>Daily Banafix</h1>
 

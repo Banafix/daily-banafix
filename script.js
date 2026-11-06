@@ -40,6 +40,19 @@ function getWarsawUtcOffset(timestamp) {
     return Date.UTC(year, month - 1, day, hour, minute, second) - roundedTimestamp;
 }
 
+function getWarsawTimestamp(year, month, day, hour = 0) {
+    const localTimestamp = Date.UTC(year, month - 1, day, hour);
+    let timestamp = localTimestamp;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const adjustedTimestamp = localTimestamp - getWarsawUtcOffset(timestamp);
+        if (adjustedTimestamp === timestamp) break;
+        timestamp = adjustedTimestamp;
+    }
+
+    return timestamp;
+}
+
 function getNextWarsawMidnight(timestamp = Date.now()) {
     const { year, month, day } = getWarsawDateTimeParts(timestamp);
     const nextDateAtUtc = Date.UTC(year, month - 1, day + 1);
@@ -427,6 +440,10 @@ plushies.forEach(plush => {
 });
 
 let collection = loadCollection();
+saveDiscoveredPlushes([
+    ...loadDiscoveredPlushes(),
+    ...collection.map(item => item.name)
+]);
 let rolling = false;
 let freeCrateCount = loadFreeCrateCount();
 
@@ -666,88 +683,6 @@ const LEVEL_BADGES = [
     { id: 'supreme', minLevel: 100, name: 'Supreme Collector', emoji: '🔥' }
 ];
 
-function getCrateRewardLabel(rewardCrates) {
-    return `${rewardCrates} free draw${rewardCrates === 1 ? '' : 's'}`;
-}
-
-function createNamedAchievement({ id, title, description, icon, requiredNames, rewardCrates = 1, reward, detailTitle = 'Required Banafixes', category = 'Sets' }) {
-    return {
-        id,
-        title,
-        description,
-        type: 'one-time',
-        target: requiredNames.length,
-        rewardCrates,
-        reward: reward || getCrateRewardLabel(rewardCrates),
-        icon,
-        category,
-        requirementType: 'named',
-        detailTitle,
-        requiredNames: requiredNames.map(getPlushDisplayName)
-    };
-}
-
-const ACHIEVEMENT_CATEGORIES = [
-    { id: 'sets', title: 'Banafix Sets' }
-];
-
-const ACHIEVEMENTS = [
-    createNamedAchievement({
-        id: 'system-error',
-        title: 'System Error',
-        description: 'Collect the given Banafixes.',
-        icon: 'images/System Error.png',
-        rewardCrates: 4,
-        category: 'sets',
-        requiredNames: ['Error Banafix', 'retro Banafix', '4k Banafix', 'Unknown Banafix']
-    }),
-    createNamedAchievement({
-        id: 'starter-set',
-        title: 'Starter Set',
-        description: 'Collect the given Banafixes.',
-        icon: 'images/Starter Set.png',
-        rewardCrates: 1,
-        category: 'sets',
-        requiredNames: ['Classic Banafix', '2 for 1 Banafix', 'Banafix v2', 'Banafix v3']
-    }),
-    createNamedAchievement({
-        id: 'stealth-squad',
-        title: 'Stealth Squad',
-        description: 'Collect the given Banafixes.',
-        icon: 'images/Stealth Squad.png',
-        rewardCrates: 3,
-        category: 'sets',
-        requiredNames: ['spy Banafix', 'camouflage Banafix', 'invisible Banafix', 'neighbor Banafix']
-    }),
-    createNamedAchievement({
-        id: 'fantastic-four',
-        title: 'Fantastic Four',
-        description: 'Collect the given Banafixes.',
-        icon: 'images/Fantastic Four.png',
-        rewardCrates: 2,
-        category: 'sets',
-        requiredNames: ['invisible Banafix', 'nerd Banafix', 'Ben', 'lava Banafix']
-    }),
-    createNamedAchievement({
-        id: 'numberjacks',
-        title: 'Numberjacks',
-        description: 'Collect the given Banafixes.',
-        icon: 'images/Numberjacks.png',
-        rewardCrates: 3,
-        category: 'sets',
-        requiredNames: ['7 minutes Banafix', '2 for 1 Banafix', '-180 Banafix', '67 Banafix']
-    }),
-    createNamedAchievement({
-        id: 'evil-vs-good',
-        title: 'Evil vs Good',
-        description: 'Collect the given Banafixes.',
-        icon: 'images/Evil vs Good.png',
-        rewardCrates: 2,
-        category: 'sets',
-        requiredNames: ['monster Banafix', 'angel Banafix']
-    }),
-];
-
 function getLevelBadge(level) {
     let badge = LEVEL_BADGES[0];
     for (const nextBadge of LEVEL_BADGES) {
@@ -803,131 +738,134 @@ function updateBlinkBalance() {
 }
 
 
-function getAchievementProgress() {
+const STICKER_DEFINITIONS = [
+    { id: 'legends', title: 'Legendary Lineup', image: 'images/SLegends.png', collectionPrefix: '👑 legends', howToGet: 'Collect all Banafixes in the Legendary Lineup collection.', rewardDraws: 10 },
+    { id: 'sunburst', title: 'Sunburst Supreme', image: 'images/SSunburst.png', collectionPrefix: '🍹', howToGet: 'Collect all Banafixes in the Sunburst collection.', rewardDraws: 10 },
+    { id: 'tacoCollection', title: 'Free Tacos', image: 'images/STaco.png', collectionPrefix: '🌮', howToGet: 'Collect all Banafixes in the Taco Tuesday collection.', rewardDraws: 10 },
+    { id: 'draw100', title: 'Century Spinner', image: 'images/SDraw.png', drawTarget: 100, howToGet: 'Complete 100 draws.', rewardDraws: 5 },
+    { id: 'sell50', title: 'I like money', image: 'images/SSell.png', countKey: 'soldCount', target: 50, howToGet: 'Sell 50 Banafixes.', rewardDraws: 5 },
+    { id: 'fusion25', title: 'Secret Laboratory', image: 'images/SFusion.png', countKey: 'fusedCount', target: 25, howToGet: 'Fuse 25 Banafixes.', rewardDraws: 3 },
+    { id: 'chanceFusion', title: '99% gamblers quit before they win', image: 'images/SChance.png', lowChanceFusion: true, target: 1, howToGet: 'Successfully fuse Banafixes with a 5% chance or lower.', rewardDraws: 10 },
+    { id: 'secretBanafix', title: 'Ssssshhhhhh...', image: 'images/SSecret.png', rarity: 'secret', target: 1, howToGet: 'Obtain a Secret Banafix.', rewardDraws: 5 }
+];
+
+function getStickerProgress(state = loadStickersState()) {
     const ownedNames = new Set(collection.map(item => item.name));
+    const drawCount = state.drawCount;
 
-    return ACHIEVEMENTS.map(achievement => {
-        let progress = 0;
-        let completed = false;
+    return STICKER_DEFINITIONS.map(sticker => {
+        const requiredPlushies = sticker.collectionPrefix
+            ? plushies.filter(plush => plush.collection && plush.collection.startsWith(sticker.collectionPrefix))
+            : [];
+        const progressValue = sticker.drawTarget
+            ? Math.min(drawCount, sticker.drawTarget)
+            : sticker.countKey
+                ? Math.min(state[sticker.countKey], sticker.target)
+                : sticker.rarity
+                    ? Math.min(collection.filter(item => plushies.some(plush => plush.name === item.name && plush.rarity === sticker.rarity)).length, sticker.target)
+                    : requiredPlushies.filter(plush => ownedNames.has(plush.name)).length;
+        const target = sticker.drawTarget || sticker.target || requiredPlushies.length;
+        const completed = Boolean(state.unlocked[sticker.id]) || progressValue >= target;
 
-        if (achievement.requirementType === 'named') {
-            const requiredNames = achievement.requiredNames || [];
-            progress = requiredNames.filter(name => ownedNames.has(name)).length;
-        }
-
-        completed = progress >= achievement.target;
-
-        return {
-            ...achievement,
-            current: Math.min(progress, achievement.target),
-            completed
-        };
+        return { ...sticker, current: completed ? target : progressValue, target, completed };
     });
 }
 
-const expandedAchievements = new Set();
+function renderHomeStickers(progress = getStickerProgress()) {
+    const container = document.getElementById('homeStickers');
+    if (!container) return;
 
-function renderAchievementDetails(achievement) {
-    function renderPlushCard(name, owned, count = 0) {
-        const plush = getPlushByName(name);
-        const collectedItem = collection.find(item => item.name === name);
-        const plushName = plush ? plush.name : name;
-        const rarity = plush ? plush.rarity : 'common';
-        const img = plush ? plush.image : 'images/Banafix.png';
-        const variantClass = collectedItem && collectedItem.negativeCount > 0
-            ? ' negative-card'
-            : collectedItem && collectedItem.rainbowCount > 0
-                ? ' rainbow-card'
-                : collectedItem && collectedItem.goldCount > 0
-                    ? ' gold-card'
-                    : '';
-        return `
-            <div class="gallery-card achievement-gallery-card${variantClass}${owned ? '' : ' disabled-card missing'}">
-                <img src="${img}" alt="${plushName}" onerror="this.onerror=null;this.src='images/Banafix.png'">
-                <div class="gallery-name">${plushName}</div>
-                <div class="rarity ${rarity}">${rarity}</div>
-                <div class="gallery-meta">${owned ? 'Owned' : 'Needed for achievement'}</div>
-            </div>
-        `;
-    }
-
-    if (achievement.requirementType === 'named' && Array.isArray(achievement.requiredNames)) {
-        return `
-            <div class="achievement-detail">
-                <div class="achievement-detail-title">${achievement.detailTitle || 'Required Banafixes'}</div>
-                <div class="achievement-plush-grid">
-                    ${achievement.requiredNames.map(name => {
-                        const ownedItem = collection.find(item => item.name === name);
-                        return renderPlushCard(name, Boolean(ownedItem), ownedItem ? ownedItem.count : 0);
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    return '';
-}
-
-function toggleAchievementExpansion(id) {
-    if (expandedAchievements.has(id)) {
-        expandedAchievements.delete(id);
-    } else {
-        expandedAchievements.add(id);
-    }
-    renderAchievementsPanel();
-}
-
-function renderAchievementsPanel() {
-    const panel = document.getElementById('achievementsPanel');
-    const list = document.getElementById('achievementsList');
-    if (!panel || !list) return;
-    const progress = getAchievementProgress();
-    const groupedAchievements = ACHIEVEMENT_CATEGORIES.map(category => ({
-        ...category,
-        achievements: progress.filter(achievement => achievement.category === category.id)
-    })).filter(category => category.achievements.length > 0);
-
-    function renderAchievementCard(achievement) {
-        const percent = Math.round((achievement.current / achievement.target) * 100);
-        const expanded = expandedAchievements.has(achievement.id);
-        const canExpand = achievement.requirementType === 'named';
-        const expandIndicator = canExpand
-            ? `<div class="achievement-expand-indicator ${expanded ? 'expanded' : ''}"><span class="achievement-expand-text">Click to expand</span><span class="achievement-expand-arrow">▾</span></div>`
-            : '';
-        return `
-            <div class="achievement-card ${achievement.completed ? 'achievement-completed' : ''} ${expanded ? 'expanded' : ''}">
-                <div class="achievement-header${canExpand ? ' achievement-toggle' : ''}"${canExpand ? ` data-id="${achievement.id}"` : ''}>
-                    <img class="achievement-icon" src="${achievement.icon}" alt="${achievement.title} icon" onerror="this.onerror=null;this.src='images/achievement.png'">
-                    <div>
-                        <strong>${achievement.title}</strong>
-                        <div style="font-size:12px; color:inherit; opacity:0.8">${achievement.reward}</div>
-                    </div>
-                    ${expandIndicator}
-                </div>
-                <div class="achievement-description">${achievement.description}</div>
-                <div class="achievement-progress">
-                    <div class="achievement-progress-bar"><div class="achievement-progress-fill" style="width:${percent}%"></div></div>
-                    <div>${achievement.current}/${achievement.target}</div>
-                </div>
-                <div class="achievement-status ${achievement.completed ? 'achievement-status-completed' : 'achievement-status-progress'}">${achievement.completed ? 'Completed!' : 'In progress'}</div>
-                ${canExpand && expanded ? renderAchievementDetails(achievement) : ''}
-            </div>
-        `;
-    }
-
-    list.innerHTML = groupedAchievements.map(category => `
-        <section class="achievement-category-section">
-            <h4 class="achievement-category-title">${category.title}</h4>
-            ${category.achievements.map(renderAchievementCard).join('')}
-        </section>
+    const unlockedStickers = progress.filter(sticker => sticker.completed);
+    container.innerHTML = unlockedStickers.map(sticker => `
+        <img class="home-sticker" data-sticker-id="${sticker.id}" src="${sticker.image}" alt="${sticker.title} sticker" title="${sticker.title}">
     `).join('');
 
-    list.querySelectorAll('.achievement-toggle').forEach(header => {
-        header.addEventListener('click', () => {
-            const id = header.getAttribute('data-id');
-            if (id) toggleAchievementExpansion(id);
-        });
+    const calendar = document.getElementById('homeCalendar');
+    const calendarBounds = calendar ? calendar.getBoundingClientRect() : null;
+    const placedBounds = [];
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+
+    container.querySelectorAll('.home-sticker').forEach(image => {
+        const computedStyle = getComputedStyle(image);
+        const width = parseFloat(computedStyle.width);
+        const height = Math.min(parseFloat(computedStyle.height) || width, viewportHeight * 0.24);
+        const seedText = `${image.dataset.stickerId}:${viewportWidth}:${viewportHeight}`;
+        let seed = 0;
+        for (let index = 0; index < seedText.length; index += 1) {
+            seed = (seed * 31 + seedText.charCodeAt(index)) >>> 0;
+        }
+        const random = () => {
+            seed = (seed * 1664525 + 1013904223) >>> 0;
+            return seed / 4294967296;
+        };
+        let placement = null;
+
+        for (let attempt = 0; attempt < 3000 && !placement; attempt += 1) {
+            const angle = -16 + random() * 32;
+            const radians = angle * Math.PI / 180;
+            const halfWidth = (width * Math.abs(Math.cos(radians)) + height * Math.abs(Math.sin(radians))) / 2;
+            const halfHeight = (height * Math.abs(Math.cos(radians)) + width * Math.abs(Math.sin(radians))) / 2;
+            const x = halfWidth + 8 + random() * Math.max(0, viewportWidth - (halfWidth + 8) * 2);
+            const y = halfHeight + 8 + random() * Math.max(0, viewportHeight - (halfHeight + 8) * 2);
+            const bounds = {
+                left: x - halfWidth,
+                right: x + halfWidth,
+                top: y - halfHeight,
+                bottom: y + halfHeight
+            };
+            const overlapsCalendar = calendarBounds
+                && calendarBounds.width > 0
+                && bounds.left < calendarBounds.right
+                && bounds.right > calendarBounds.left
+                && bounds.top < calendarBounds.bottom
+                && bounds.bottom > calendarBounds.top;
+            const overlapsSticker = placedBounds.some(other =>
+                bounds.left < other.right + 8
+                && bounds.right > other.left - 8
+                && bounds.top < other.bottom + 8
+                && bounds.bottom > other.top - 8
+            );
+
+            if (!overlapsCalendar && !overlapsSticker) {
+                placement = { x, y, angle, bounds };
+            }
+        }
+
+        if (!placement) {
+            image.hidden = true;
+            return;
+        }
+
+        image.hidden = false;
+        image.style.left = `${placement.x}px`;
+        image.style.top = `${placement.y}px`;
+        image.style.transform = `translate(-50%, -50%) rotate(${placement.angle}deg)`;
+        placedBounds.push(placement.bounds);
     });
+}
+
+function renderStickersPanel() {
+    const list = document.getElementById('stickersList');
+    if (!list) return;
+
+    list.innerHTML = getStickerProgress().map(sticker => {
+        const percent = Math.round((sticker.current / sticker.target) * 100);
+        return `
+            <article class="sticker-card${sticker.completed ? ' sticker-completed' : ''}">
+                <img class="sticker-image${sticker.completed ? '' : ' sticker-locked'}" src="${sticker.image}" alt="${sticker.title}">
+                <div class="sticker-card-content">
+                    <strong>${sticker.title}</strong>
+                    ${sticker.rewardDraws ? `<div class="sticker-reward">Reward: +${sticker.rewardDraws} free draws</div>` : ''}
+                    <div class="sticker-progress">
+                        <div class="sticker-progress-bar"><div class="sticker-progress-fill" style="width:${percent}%"></div></div>
+                        <span>${sticker.current}/${sticker.target}</span>
+                    </div>
+                    <div class="sticker-status">${sticker.completed ? 'Unlocked — displayed on the home screen' : `How to get: ${sticker.howToGet}`}</div>
+                </div>
+            </article>
+        `;
+    }).join('');
 }
 
 function ensureLevelInfo() {
@@ -997,24 +935,6 @@ function renderLevelProgressModal() {
     rewardDescriptionEl.textContent = `+1 free draw · +${LEVEL_BLINK_REWARD} Blink`;
 }
 
-function getAchievementProgress() {
-    const ownedNames = new Set(collection.map(item => item.name));
-
-    return ACHIEVEMENTS.map(achievement => {
-        let progress = 0;
-        if (achievement.requirementType === 'named') {
-            const requiredNames = achievement.requiredNames || [];
-            progress = requiredNames.filter(name => ownedNames.has(name)).length;
-        }
-
-        return {
-            ...achievement,
-            current: Math.min(progress, achievement.target),
-            completed: progress >= achievement.target
-        };
-    });
-}
-
 function showToast(message, type='info', icon='') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -1028,10 +948,10 @@ function showToast(message, type='info', icon='') {
         const iconImg = document.createElement('img');
         iconImg.className = 'notification-icon';
         iconImg.src = icon;
-        iconImg.alt = 'Achievement icon';
+        iconImg.alt = 'Sticker';
         iconImg.onerror = () => {
             iconImg.onerror = null;
-            iconImg.src = 'images/achievement.png';
+            iconImg.src = 'images/SDraw.png';
         };
 
         const text = document.createElement('div');
@@ -1054,8 +974,7 @@ function showToast(message, type='info', icon='') {
 
 function refreshGameUi() {
     updateLevelInfo();
-    awardAchievementIfNeeded();
-    renderAchievementsPanel();
+    updateStickers();
     updateTimer();
     refreshCrateState();
     showCollection();
@@ -1130,11 +1049,12 @@ function loadCollection() {
         .map(item => ({
             ...item,
             name: getPlushDisplayName(item.name),
+            image: plushies.find(plush => plush.name === getPlushDisplayName(item.name))?.image || item.image || 'images/unknown.png',
             count: item.count === undefined || item.count === null ? 1 : Math.floor(Number(item.count))
         }))
         .filter(item => Number.isFinite(item.count) && item.count > 0);
     if (migrated.length !== raw.length || migrated.some((item, index) => (
-        item.name !== raw[index].name || item.count !== (raw[index].count ?? 1)
+        item.name !== raw[index].name || item.image !== raw[index].image || item.count !== (raw[index].count ?? 1)
     ))) {
         localStorage.setItem('collection', JSON.stringify(migrated));
     }
@@ -1151,15 +1071,32 @@ function loadCollection() {
 
 function saveCollection() {
     localStorage.setItem('collection', JSON.stringify(collection));
+    saveDiscoveredPlushes([
+        ...loadDiscoveredPlushes(),
+        ...collection.map(item => item.name)
+    ]);
+}
+
+function loadDiscoveredPlushes() {
+    const stored = JSON.parse(localStorage.getItem('discoveredPlushes')) || [];
+    if (!Array.isArray(stored) || !stored.every(name => typeof name === 'string')) {
+        throw new Error('The discovered Banafix data is invalid.');
+    }
+    return [...new Set(stored)];
+}
+
+function saveDiscoveredPlushes(names) {
+    localStorage.setItem('discoveredPlushes', JSON.stringify([...new Set(names)]));
 }
 
 const GAME_SAVE_KEYS = [
     'collection',
+    'discoveredPlushes',
     'playerXp',
     'blinks',
     'freeCrateCount',
     'lastAwardedLevel',
-    'achievementsState',
+    'stickersState',
     'lastDraw',
     'lastDrawResults',
     'collectionUpgrades'
@@ -1175,13 +1112,13 @@ function encodeSavePayload(payload) {
     const data = payload && payload.data ? payload.data : payload;
     const compact = {
         f: 'daily-banafix-save',
-        v: 4,
+        v: 6,
         d: [
             (data.collection || []).map(item => [item.name, item.image || '', item.rarity || 'common', item.count || 1, item.goldCount || 0, item.rainbowCount || 0, item.negativeCount || 0]),
             Number.isFinite(data.playerXp) ? data.playerXp : 0,
             Number.isFinite(data.freeCrateCount) ? data.freeCrateCount : 0,
             Number.isFinite(data.lastAwardedLevel) ? data.lastAwardedLevel : 0,
-            Object.entries(data.achievementsState || {}),
+            data.stickersState || { drawCount: 0, unlocked: {} },
             data.lastDraw ?? null,
             data.lastDrawResults ? [
                 data.lastDrawResults.cards.map(card => [card.name, card.variant, Boolean(card.sold)]),
@@ -1191,7 +1128,11 @@ function encodeSavePayload(payload) {
             data.collectionUpgrades && typeof data.collectionUpgrades === 'object'
                 ? Object.entries(data.collectionUpgrades)
                 : [],
-            Number.isFinite(data.blinks) ? data.blinks : 0
+            Number.isFinite(data.blinks) ? data.blinks : 0,
+            [...new Set([
+                ...(Array.isArray(data.discoveredPlushes) ? data.discoveredPlushes : []),
+                ...(data.collection || []).map(item => item.name)
+            ])]
         ]
     };
     return `dbs:${JSON.stringify(compact)}`;
@@ -1210,14 +1151,14 @@ function decodeSavePayload(value) {
     }
 
     const compact = JSON.parse(trimmed.slice(4));
-    if (!compact || compact.f !== 'daily-banafix-save' || ![2, 3, 4].includes(compact.v) || !Array.isArray(compact.d) || compact.d.length < 7) {
+    if (!compact || compact.f !== 'daily-banafix-save' || ![2, 3, 4, 5, 6].includes(compact.v) || !Array.isArray(compact.d) || compact.d.length < 7) {
         throw new Error('The save data is invalid.');
     }
 
-    const [collection, playerXp, freeCrateCount, lastAwardedLevel, achievementsState, lastDraw, lastDrawResults, rawUpgrades, blinks] = compact.d;
+    const [collection, playerXp, freeCrateCount, lastAwardedLevel, stickersState, lastDraw, lastDrawResults, rawUpgrades, blinks, discoveredPlushes] = compact.d;
     return {
         format: 'daily-banafix-save',
-        version: 4,
+        version: 6,
         exportedAt: new Date().toISOString(),
         data: {
             collection: Array.isArray(collection)
@@ -1234,7 +1175,9 @@ function decodeSavePayload(value) {
             playerXp: Number(playerXp) || 0,
             freeCrateCount: Number(freeCrateCount) || 0,
             lastAwardedLevel: Number(lastAwardedLevel) || 0,
-            achievementsState: Array.isArray(achievementsState) ? Object.fromEntries(achievementsState) : {},
+            stickersState: compact.v >= 5 && stickersState && typeof stickersState === 'object'
+                ? stickersState
+                : { drawCount: 0, unlocked: {} },
             lastDraw: lastDraw ?? null,
             lastDrawResults: lastDrawResults && Array.isArray(lastDrawResults)
                 ? {
@@ -1246,7 +1189,11 @@ function decodeSavePayload(value) {
             collectionUpgrades: Array.isArray(rawUpgrades)
                 ? Object.fromEntries(rawUpgrades.map(([key, value]) => [key, Number(value) || 0]))
                 : {},
-            blinks: Number(blinks) || 0
+            blinks: Number(blinks) || 0,
+            discoveredPlushes: [...new Set([
+                ...(compact.v >= 6 && Array.isArray(discoveredPlushes) ? discoveredPlushes : []),
+                ...(Array.isArray(collection) ? collection.map(item => item[0]) : [])
+            ])]
         }
     };
 }
@@ -1254,11 +1201,12 @@ function decodeSavePayload(value) {
 function createGameSavePayload() {
     const data = {
         collection: readGameSaveValue('collection', []),
+        discoveredPlushes: readGameSaveValue('discoveredPlushes', []),
         playerXp: readGameSaveValue('playerXp', 0),
         blinks: readGameSaveValue('blinks', 0),
         freeCrateCount: readGameSaveValue('freeCrateCount', 0),
         lastAwardedLevel: readGameSaveValue('lastAwardedLevel', 0),
-        achievementsState: readGameSaveValue('achievementsState', {}),
+        stickersState: readGameSaveValue('stickersState', { drawCount: 0, unlocked: {} }),
         lastDraw: readGameSaveValue('lastDraw', null),
         lastDrawResults: readGameSaveValue('lastDrawResults', null),
         collectionUpgrades: readGameSaveValue('collectionUpgrades', {})
@@ -1266,14 +1214,14 @@ function createGameSavePayload() {
 
     return {
         format: 'daily-banafix-save',
-        version: 4,
+        version: 6,
         exportedAt: new Date().toISOString(),
         data
     };
 }
 
 function validateGameSavePayload(payload) {
-    if (!payload || payload.format !== 'daily-banafix-save' || ![1, 2, 3, 4].includes(payload.version)) {
+    if (!payload || payload.format !== 'daily-banafix-save' || ![1, 2, 3, 4, 5, 6].includes(payload.version)) {
         throw new Error('This is not a supported Daily Banafix save.');
     }
 
@@ -1284,6 +1232,16 @@ function validateGameSavePayload(payload) {
     if (!Array.isArray(data.collection) || !data.collection.every(item => item && typeof item.name === 'string')) {
         throw new Error('The collection data is invalid.');
     }
+    if (data.discoveredPlushes === undefined) {
+        data.discoveredPlushes = data.collection.map(item => item.name);
+    }
+    if (!Array.isArray(data.discoveredPlushes) || !data.discoveredPlushes.every(name => typeof name === 'string')) {
+        throw new Error('The discovered Banafix data is invalid.');
+    }
+    data.discoveredPlushes = [...new Set([
+        ...data.discoveredPlushes,
+        ...data.collection.map(item => item.name)
+    ])];
     if (!Number.isFinite(data.playerXp) || data.playerXp < 0) {
         throw new Error('The XP value is invalid.');
     }
@@ -1296,8 +1254,19 @@ function validateGameSavePayload(payload) {
             throw new Error(`The ${key} value is invalid.`);
         }
     }
-    if (!data.achievementsState || typeof data.achievementsState !== 'object' || Array.isArray(data.achievementsState)) {
-        throw new Error('The achievements data is invalid.');
+    if (data.stickersState === undefined) data.stickersState = { drawCount: 0, unlocked: {} };
+    if (data.stickersState && typeof data.stickersState === 'object') {
+        data.stickersState.rewarded = data.stickersState.rewarded || {};
+        data.stickersState.soldCount = data.stickersState.soldCount ?? 0;
+        data.stickersState.fusedCount = data.stickersState.fusedCount ?? 0;
+    }
+    if (!data.stickersState || typeof data.stickersState !== 'object' || Array.isArray(data.stickersState)
+        || !Number.isSafeInteger(data.stickersState.drawCount) || data.stickersState.drawCount < 0
+        || !data.stickersState.unlocked || typeof data.stickersState.unlocked !== 'object' || Array.isArray(data.stickersState.unlocked)
+        || !data.stickersState.rewarded || typeof data.stickersState.rewarded !== 'object' || Array.isArray(data.stickersState.rewarded)
+        || !Number.isSafeInteger(data.stickersState.soldCount) || data.stickersState.soldCount < 0
+        || !Number.isSafeInteger(data.stickersState.fusedCount) || data.stickersState.fusedCount < 0) {
+        throw new Error('The stickers data is invalid.');
     }
     if (!data.collectionUpgrades || typeof data.collectionUpgrades !== 'object' || Array.isArray(data.collectionUpgrades)) {
         throw new Error('The collection upgrades data is invalid.');
@@ -1354,55 +1323,65 @@ function awardFreeCratesIfNeeded() {
     }
 }
 
-function loadAchievementsState() {
-    return JSON.parse(localStorage.getItem('achievementsState')) || {};
+function loadStickersState() {
+    const state = JSON.parse(localStorage.getItem('stickersState')) || {};
+    return {
+        drawCount: Number.isSafeInteger(state.drawCount) && state.drawCount >= 0 ? state.drawCount : 0,
+        soldCount: Number.isSafeInteger(state.soldCount) && state.soldCount >= 0 ? state.soldCount : 0,
+        fusedCount: Number.isSafeInteger(state.fusedCount) && state.fusedCount >= 0 ? state.fusedCount : 0,
+        unlocked: state.unlocked && typeof state.unlocked === 'object' && !Array.isArray(state.unlocked)
+            ? state.unlocked
+            : {},
+        rewarded: state.rewarded && typeof state.rewarded === 'object' && !Array.isArray(state.rewarded)
+            ? state.rewarded
+            : {}
+    };
 }
 
-function saveAchievementsState(state) {
-    localStorage.setItem('achievementsState', JSON.stringify(state));
-}
-
-function awardAchievementIfNeeded() {
-    const state = loadAchievementsState();
-    const progress = getAchievementProgress();
+function updateStickers({ recordDraw = false, recordSale = false, recordFusion = 0, recordChanceFusion = false } = {}) {
+    const state = loadStickersState();
     let updated = false;
+    if (recordDraw) {
+        state.drawCount += 1;
+        updated = true;
+    }
+    if (recordSale) {
+        state.soldCount += 1;
+        updated = true;
+    }
+    if (Number.isSafeInteger(recordFusion) && recordFusion > 0) {
+        state.fusedCount += recordFusion;
+        updated = true;
+    }
+    if (recordChanceFusion) {
+        state.unlocked.chanceFusion = true;
+        updated = true;
+    }
 
-    progress.forEach(achievement => {
-        const previous = state[achievement.id] || { completed: false, progress: 0 };
-        const previousProgress = previous.progress || 0;
-
-        if (achievement.current > previousProgress) {
-            state[achievement.id] = {
-                ...previous,
-                progress: achievement.current
-            };
+    const progress = getStickerProgress(state);
+    let rewardDraws = 0;
+    progress.forEach(sticker => {
+        if (sticker.completed && !state.unlocked[sticker.id]) {
+            state.unlocked[sticker.id] = true;
             updated = true;
-
-            if (!achievement.completed) {
-                showToast(`Progres: ${achievement.title} ${achievement.current}/${achievement.target}`, 'info', achievement.icon);
-            }
+            showToast(`${sticker.title} unlocked!`, 'success', sticker.image);
         }
-
-        if (!previous.completed && achievement.completed) {
-            const rewardCrates = achievement.rewardCrates || 1;
-            state[achievement.id] = {
-                ...state[achievement.id],
-                completed: true,
-                completedAt: Date.now(),
-                progress: achievement.target
-            };
+        if (sticker.completed && !state.rewarded[sticker.id]) {
+            state.rewarded[sticker.id] = true;
+            rewardDraws += sticker.rewardDraws || 0;
             updated = true;
-            freeCrateCount = loadFreeCrateCount() + rewardCrates;
-            saveFreeCrateCount(freeCrateCount);
-            showToast(`Achievement unlocked: ${achievement.title}! +${rewardCrates} free draw${rewardCrates === 1 ? '' : 's'}`, 'success', achievement.icon);
         }
     });
 
-    if (updated) {
-        saveAchievementsState(state);
+    if (updated) localStorage.setItem('stickersState', JSON.stringify(state));
+    if (rewardDraws > 0) {
+        freeCrateCount = loadFreeCrateCount() + rewardDraws;
+        saveFreeCrateCount(freeCrateCount);
         updateFreeCrateButton();
-        renderAchievementsPanel();
+        showToast(`Sticker rewards claimed! +${rewardDraws} free draws`, 'success');
     }
+    renderHomeStickers(progress);
+    renderStickersPanel();
 }
 
 function updateFreeCrateButton() {
@@ -1430,13 +1409,13 @@ function updateFreeCrateButton() {
     }
 }
 
-function toggleAchievementsPanel() {
-    const modal = document.getElementById('achievementsModal');
+function toggleStickersPanel() {
+    const modal = document.getElementById('stickersModal');
     if (!modal) return;
     const isHidden = modal.classList.contains('hidden');
 
     if (isHidden) {
-        renderAchievementsPanel();
+        renderStickersPanel();
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('modal-open');
@@ -1461,6 +1440,37 @@ function isTacoEventActive(date = new Date()) {
     return date.getDay() === 2; // Tuesdays only
 }
 
+const DOUBLE_XP_EVENT_START_DATE = Date.UTC(2026, 10, 6);
+const DOUBLE_XP_EVENT_INTERVAL_DAYS = 20;
+
+function getDoubleXpEventWindow(timestamp = Date.now()) {
+    const { year, month, day } = getWarsawDateTimeParts(timestamp);
+    const today = Date.UTC(year, month - 1, day);
+    const daysSinceFirstEvent = Math.floor((today - DOUBLE_XP_EVENT_START_DATE) / 86400000);
+    const occurrence = Math.max(0, Math.floor(daysSinceFirstEvent / DOUBLE_XP_EVENT_INTERVAL_DAYS));
+    const startDate = today < DOUBLE_XP_EVENT_START_DATE
+        ? DOUBLE_XP_EVENT_START_DATE
+        : DOUBLE_XP_EVENT_START_DATE + occurrence * DOUBLE_XP_EVENT_INTERVAL_DAYS * 86400000;
+    const start = new Date(startDate);
+    const startAt = getWarsawTimestamp(start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCDate());
+    const endAt = startAt + 86400000;
+
+    return { startAt, endAt, active: timestamp >= startAt && timestamp < endAt };
+}
+
+function getNextDoubleXpEvent(timestamp = Date.now()) {
+    const currentEvent = getDoubleXpEventWindow(timestamp);
+    const startAt = currentEvent.startAt <= timestamp
+        ? currentEvent.startAt + DOUBLE_XP_EVENT_INTERVAL_DAYS * 86400000
+        : currentEvent.startAt;
+
+    return { startAt, endAt: startAt + 86400000 };
+}
+
+function isDoubleXpEventActive(timestamp = Date.now()) {
+    return getDoubleXpEventWindow(timestamp).active;
+}
+
 function getUpcomingWeeklyEvents(limit = 4, timestamp = Date.now()) {
     const { year, month, day } = getWarsawDateTimeParts(timestamp);
     const weekdayEvents = new Map([
@@ -1474,6 +1484,45 @@ function getUpcomingWeeklyEvents(limit = 4, timestamp = Date.now()) {
         const scheduledEvent = weekdayEvents.get(date.getUTCDay());
         if (scheduledEvent) events.push({ ...scheduledEvent, date });
     }
+
+    return events;
+}
+
+function getUpcomingCalendarEvents(limit = 4, timestamp = Date.now()) {
+    if (limit <= 0) return [];
+
+    const weeklyEvents = getUpcomingWeeklyEvents(Math.max(0, limit - 1), timestamp).map(event => {
+        const date = new Date(Date.UTC(event.date.getUTCFullYear(), event.date.getUTCMonth(), event.date.getUTCDate()));
+        return {
+            ...event,
+            date,
+            startAt: getWarsawTimestamp(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+        };
+    });
+    const doubleXpEvent = getNextDoubleXpEvent(timestamp);
+    const events = [
+        ...weeklyEvents,
+        {
+            name: 'Double XP',
+            icon: '✨',
+            startAt: doubleXpEvent.startAt,
+            date: new Date(doubleXpEvent.startAt),
+            detail: 'Every 20 days · 24h'
+        }
+    ];
+
+    return events.sort((a, b) => a.startAt - b.startAt).slice(0, limit);
+}
+
+function getActiveCalendarEvents(timestamp = Date.now()) {
+    const { year, month, day } = getWarsawDateTimeParts(timestamp);
+    const today = new Date(Date.UTC(year, month - 1, day));
+    const events = [];
+
+    if (today.getUTCDay() === 2) events.push({ name: 'Taco Tuesday', icon: '🌮' });
+    if (today.getUTCDay() === 5) events.push({ name: 'Legends', icon: '👑' });
+    if (month === 7 || month === 8) events.push({ name: 'Sunburst', icon: '🍹' });
+    if (isDoubleXpEventActive(timestamp)) events.push({ name: 'Double XP', icon: '✨' });
 
     return events;
 }
@@ -1497,24 +1546,47 @@ function formatCalendarDate(date, options) {
 }
 
 function renderCalendarContent() {
-    const weeklyEvents = getUpcomingWeeklyEvents();
+    const upcomingEvents = getUpcomingCalendarEvents();
+    const activeEvents = getActiveCalendarEvents();
     const sunburstSeasons = getUpcomingSunburstSeasons();
+    const eventDateFormatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: DRAW_TIME_ZONE,
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        weekday: 'short'
+    });
     return `
-        <section class="calendar-section">
+        <section class="calendar-section calendar-section-active">
+            <h3>Active events</h3>
+            <div class="calendar-event-list">
+                ${activeEvents.length
+                    ? activeEvents.map(event => `
+                        <div class="calendar-event-row">
+                            <div class="calendar-event-label">
+                                <span aria-hidden="true">${event.icon}</span>
+                                <div><strong>${event.name}</strong><small>Active now</small></div>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<div class="calendar-event-empty">No active events right now.</div>'}
+            </div>
+        </section>
+        <section class="calendar-section calendar-section-upcoming">
             <h3>Next 4 events</h3>
             <div class="calendar-event-list">
-                ${weeklyEvents.map(event => `
+                ${upcomingEvents.map(event => `
                     <div class="calendar-event-row">
                         <div class="calendar-event-label">
                             <span aria-hidden="true">${event.icon}</span>
-                            <div><strong>${event.name}</strong><small>Weekly</small></div>
+                            <div><strong>${event.name}</strong><small>${event.detail || 'Weekly'}</small></div>
                         </div>
-                        <time datetime="${event.date.toISOString().slice(0, 10)}">${formatCalendarDate(event.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</time>
+                        <time datetime="${new Date(event.startAt).toISOString()}">${eventDateFormatter.format(new Date(event.startAt))}</time>
                     </div>
                 `).join('')}
             </div>
         </section>
-        <section class="calendar-section">
+        <section class="calendar-section calendar-section-yearly">
             <h3>Next 2 yearly events</h3>
             <div class="calendar-event-list">
                 ${sunburstSeasons.map(season => `
@@ -1734,7 +1806,8 @@ function getDrawRewards(plush, variant) {
     const collectionKey = getUpgradeCollectionKey(plush.collection || '');
     const xpBoost = getCollectionUpgradeLevel(collectionKey, 'xp') * COLLECTION_XP_BOOST_PER_LEVEL;
     return {
-        xp: (RARITY_XP[plush.rarity] || 0) + (VARIANT_XP[variant] || 0) + xpBoost
+        xp: ((RARITY_XP[plush.rarity] || 0) + (VARIANT_XP[variant] || 0) + xpBoost)
+            * (isDoubleXpEventActive() ? 2 : 1)
     };
 }
 
@@ -1884,6 +1957,7 @@ function sellCollectedPlush(plushName, variant) {
 
     const sellValue = getPlushSellValue(plush, variant);
     saveCollection();
+    updateStickers({ recordSale: true });
     savePlayerBlinks(loadPlayerBlinks() + sellValue);
     updateBlinkBalance();
     return sellValue;
@@ -1918,7 +1992,7 @@ function buildDrawCardsMarkup(drawnResults, revealAll = false) {
                                 <span class="draw-card-back-label">Banafix</span>
                             </div>
                             <div class="draw-card-side draw-card-front gallery-card draw-result-card ${variantCardClass}" aria-hidden="${revealAll ? 'false' : 'true'}">
-                                <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
+                                <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/unknown.png'">
                                 ${variantBadge}
                                 <div class="gallery-name">${plush.name}</div>
                                 <div class="rarity ${plush.rarity}">${plush.rarity}</div>
@@ -2112,7 +2186,7 @@ function drawPlush(options = {}) {
                                         <span class="draw-card-back-label">Banafix</span>
                                     </div>
                                     <div class="draw-card-side draw-card-front gallery-card draw-result-card ${variantCardClass}" aria-hidden="true">
-                                        <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
+                                        <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/unknown.png'">
                                         ${variantBadge}
                                         <div class="gallery-name">${plush.name}</div>
                                         <div class="rarity ${plush.rarity}">${plush.rarity}</div>
@@ -2179,7 +2253,7 @@ function drawPlush(options = {}) {
         updateLevelInfo();
         updateBlinkBalance();
         showDrawXpToast(gainedXp);
-        awardAchievementIfNeeded();
+        updateStickers({ recordDraw: true });
 
         if (!bypassCooldown) {
             const drawTime = Date.now();
@@ -3089,11 +3163,11 @@ function initApp() {
                 fusionWheel.style.transform = `rotate(${spinRotation}deg)`;
                 fusionWheel.classList.remove('spinning');
             }
-            completeFusion(selectedCopies, selectedOutcome, succeeded);
+            completeFusion(selectedCopies, selectedOutcome, succeeded, successChance);
         }, spinDuration);
     }
 
-    function completeFusion(selectedCopies, selectedOutcome, succeeded) {
+    function completeFusion(selectedCopies, selectedOutcome, succeeded, successChance) {
         selectedCopies.forEach(({ plush, variant }) => {
             const itemIndex = collection.findIndex(item => item.name === plush.name);
             const item = collection[itemIndex];
@@ -3136,7 +3210,10 @@ function initApp() {
                 : `Fusion failed. The four ingredients were consumed.`;
         }
         showCollection();
-        if (succeeded) awardAchievementIfNeeded();
+        updateStickers({
+            recordFusion: selectedCopies.length,
+            recordChanceFusion: succeeded && successChance <= 5
+        });
         renderFusionModal();
     }
 
@@ -3155,14 +3232,14 @@ function initApp() {
         document.body.classList.remove('modal-open');
     }
 
-    const achievementsBtn = document.getElementById('achievementsBtn');
-    const achievementsModal = document.getElementById('achievementsModal');
-    const closeAchievementsModalBtn = document.getElementById('closeAchievementsModal');
+    const stickersBtn = document.getElementById('stickersBtn');
+    const stickersModal = document.getElementById('stickersModal');
+    const closeStickersModalBtn = document.getElementById('closeStickersModal');
 
-    function closeAchievementsModal() {
-        if (!achievementsModal) return;
-        achievementsModal.classList.add('hidden');
-        achievementsModal.setAttribute('aria-hidden', 'true');
+    function closeStickersModal() {
+        if (!stickersModal) return;
+        stickersModal.classList.add('hidden');
+        stickersModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('modal-open');
     }
 
@@ -3281,12 +3358,12 @@ function initApp() {
         closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
     }
 
-    if (achievementsBtn) {
-        achievementsBtn.addEventListener('click', toggleAchievementsPanel);
+    if (stickersBtn) {
+        stickersBtn.addEventListener('click', toggleStickersPanel);
     }
 
-    if (closeAchievementsModalBtn) {
-        closeAchievementsModalBtn.addEventListener('click', closeAchievementsModal);
+    if (closeStickersModalBtn) {
+        closeStickersModalBtn.addEventListener('click', closeStickersModal);
     }
 
     if (closeNewsModalBtn) {
@@ -3431,33 +3508,38 @@ function initApp() {
         });
     }
 
-    if (achievementsModal) {
-        achievementsModal.addEventListener('click', (event) => {
-            if (event.target.classList.contains('achievements-modal-backdrop')) {
-                closeAchievementsModal();
+    if (stickersModal) {
+        stickersModal.addEventListener('click', (event) => {
+            if (event.target.classList.contains('stickers-modal-backdrop')) {
+                closeStickersModal();
             }
         });
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !achievementsModal.classList.contains('hidden')) {
-                closeAchievementsModal();
+            if (event.key === 'Escape' && !stickersModal.classList.contains('hidden')) {
+                closeStickersModal();
             }
         });
     }
 
-    if (achievementsModal) {
-        achievementsModal.classList.add('hidden');
+    if (stickersModal) {
+        stickersModal.classList.add('hidden');
     }
-
-    openNewsModal();
 
     const freeCrateBtn = document.getElementById('freeCrateBtn');
     if (freeCrateBtn) freeCrateBtn.addEventListener('click', openAvailableCrate);
 
     updateEventStatus();
     updateLevelInfo();
+    updateStickers();
     updateFreeCrateButton();
     renderGallery();
     showCollection();
+
+    let stickerResizeTimer;
+    window.addEventListener('resize', () => {
+        window.clearTimeout(stickerResizeTimer);
+        stickerResizeTimer = window.setTimeout(() => renderHomeStickers(), 100);
+    });
 }
 
 function renderInitialCrate() {
@@ -3527,6 +3609,10 @@ function renderGallery() {
         quickSellButton.setAttribute('aria-pressed', String(quickSellMode));
     }
     const collectedNames = new Set(collection.map(item => item.name));
+    const discoveredNames = new Set([
+        ...loadDiscoveredPlushes(),
+        ...collectedNames
+    ]);
     const general = sortGalleryPlushes(plushies.filter(isGeneralCollection));
     const eventPlushes = sortGalleryPlushes(plushies.filter(isEventCollection));
     const sunburst = isSunburstEventActive();
@@ -3585,8 +3671,8 @@ function renderGallery() {
         return `
             <div class="gallery-card${variantClass}${hidden ? ' hidden-card disabled-card' : ''}${extraClasses ? ' ' + extraClasses : ''}${quickSellMode && quickSellKey !== null ? ` quick-sell-selectable${quickSellSelected ? ' quick-sell-selected' : ''}` : ''}" ${clickAttr}>
                 ${quickSellMode && quickSellKey !== null ? `<span class="quick-sell-selection-badge">${quickSellSelected ? 'Selected' : 'Select'}</span>` : ''}
-                <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
-                <div class="gallery-name">${hidden ? '???' : plush.name}</div>
+                <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/unknown.png'">
+                    <div class="gallery-name">${hidden ? '???' : plush.name}</div>
                 <div class="rarity ${plush.rarity}">${hidden ? '' : plush.rarity}</div>
                 ${hidden ? '' : sellValueMarkup}
             </div>
@@ -3644,7 +3730,7 @@ function renderGallery() {
         const totalItemsCollected = collection.reduce((sum, item) => sum + (item.count || 0), 0);
 
         gallery.innerHTML = `
-            <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${collectedNames.size}/${plushies.length} unique · Collection value: ${totalCollectionValue} Blink</div>
+            <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${collectedNames.size}/${plushies.length} unique collected · Collection value: ${totalCollectionValue} Blink</div>
             ${quickSellMode ? `<div class="quick-sell-toolbar">
                 <span>${selectedCards.length} selected · ${selectedSellValue} Blink</span>
                 <button class="quick-sell-action" type="button" data-quick-sell-action ${selectedCards.length ? '' : 'disabled'}>Sell selected</button>
@@ -3713,24 +3799,24 @@ function renderGallery() {
     }
 
     function collectionProgress(groupPlushes) {
-        const collected = groupPlushes.filter(p => collectedNames.has(p.name)).length;
-        return { collected, total: groupPlushes.length };
+        const discovered = groupPlushes.filter(p => discoveredNames.has(p.name)).length;
+        return { discovered, total: groupPlushes.length };
     }
 
     const totalItemsCollected = collection.reduce((sum, item) => sum + (item.count || 0), 0);
-    const totalUniqueCollected = collectedNames.size;
+    const totalUniqueDiscovered = discoveredNames.size;
     const totalUnique = plushies.length;
     const generalProgress = collectionProgress(general);
     const hasVisibleBanafixes = visibleGeneral.length > 0
         || Object.values(visibleEventGroups).some(groupPlushes => groupPlushes.length > 0);
 
     gallery.innerHTML = `
-        <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${totalUniqueCollected}/${totalUnique} unique · Collection value: ${totalCollectionValue} Blink</div>
+        <div class="gallery-overview">Collected: ${totalItemsCollected} items · ${totalUniqueDiscovered}/${totalUnique} discovered · Collection value: ${totalCollectionValue} Blink</div>
         ${visibleGeneral.length ? `<div class="gallery-section">
             <h4 class="gallery-section-heading">
                 <button class="collection-toggle general-collection-title" type="button" data-collection-toggle data-collection-key="general" data-collection-label="General collection" aria-expanded="true" aria-label="Collapse General collection">
                     <img src="images/General.png" alt="General collection">
-                    <span>${generalProgress.collected}/${generalProgress.total}</span>
+                    <span>${generalProgress.discovered}/${generalProgress.total}</span>
                     <span class="collection-arrow" aria-hidden="true">▾</span>
                 </button>
             </h4>
@@ -3739,7 +3825,7 @@ function renderGallery() {
                 <div class="gallery-grid">
                     ${showCollectedOnlyInCatalog
                         ? renderGalleryCards(visibleGeneral)
-                        : visibleGeneral.map(p => renderGalleryCard(p, !collectedNames.has(p.name))).join('')}
+                        : visibleGeneral.map(p => renderGalleryCard(p, !discoveredNames.has(p.name))).join('')}
                 </div>
             </div>
         </div>` : ''}
@@ -3764,8 +3850,8 @@ function renderGallery() {
                         ? 'Taco event is available on Tuesday only.'
                     : '';
                 const headerContent = collectionBadge
-                    ? `<img src="${collectionBadge.src}" alt="${collectionBadge.alt}"><span>${progress.collected}/${progress.total}</span><span class="collection-arrow" aria-hidden="true">▾</span>`
-                : `<span>${group} ${enabledGroup ? '(available now)' : '(locked)'} (${progress.collected}/${progress.total})</span><span class="collection-arrow" aria-hidden="true">▾</span>`;
+                    ? `<img src="${collectionBadge.src}" alt="${collectionBadge.alt}"><span>${progress.discovered}/${progress.total}</span><span class="collection-arrow" aria-hidden="true">▾</span>`
+                : `<span>${group} ${enabledGroup ? '(available now)' : '(locked)'} (${progress.discovered}/${progress.total})</span><span class="collection-arrow" aria-hidden="true">▾</span>`;
                 const badgeHeaderClass = collectionBadge ? ' general-collection-title' : '';
             return `
             <div class="gallery-section">
@@ -3780,7 +3866,7 @@ function renderGallery() {
                         ${showCollectedOnlyInCatalog
                             ? renderGalleryCards(groupPlushes, enabledGroup ? '' : 'disabled-card')
                             : groupPlushes.map(p => {
-                                const hidden = !collectedNames.has(p.name);
+                                const hidden = !discoveredNames.has(p.name);
                                 const extraClasses = enabledGroup ? '' : 'disabled-card';
                                 return renderGalleryCard(p, hidden, extraClasses);
                             }).join('')}
@@ -3867,7 +3953,7 @@ function showPlushFullscreen(plushName, selectedVariant = null) {
             <button class="fullscreen-close" aria-label="Close">×</button>
             <div class="fullscreen-layout">
                 <div class="fullscreen-illustration">
-                    <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/Banafix.png'">
+                    <img src="${plush.image}" alt="${plush.name}" onerror="this.onerror=null;this.src='images/unknown.png'">
                     <h2>${plush.name}</h2>
                     <div class="rarity ${plush.rarity}">${plush.rarity}</div>
                 </div>
@@ -3987,6 +4073,15 @@ window.addEventListener('storage', event => {
         collection = loadCollection();
         refreshSavedDrawResultButtons();
         renderGallery();
+        updateStickers();
+    }
+
+    if (event.key === 'discoveredPlushes') {
+        renderGallery();
+    }
+
+    if (event.key === 'stickersState') {
+        updateStickers();
     }
 
     if (event.key === 'lastDrawResults') {
