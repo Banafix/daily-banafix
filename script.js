@@ -73,6 +73,22 @@ function getPlushDisplayName(name) {
         : name;
 }
 
+function getPlushLookupKey(name) {
+    if (typeof name !== 'string') return '';
+    const key = getPlushDisplayName(name)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLocaleLowerCase()
+        .replace(/\s+/g, ' ');
+    return key === 'piniata' ? 'pinata' : key;
+}
+
+function findPlushDefinition(name) {
+    const key = getPlushLookupKey(name);
+    return plushies.find(plush => getPlushLookupKey(plush.name) === key);
+}
+
 const plushies = [
 
 {
@@ -750,7 +766,10 @@ const STICKER_DEFINITIONS = [
 ];
 
 function getStickerProgress(state = loadStickersState()) {
-    const ownedNames = new Set(collection.map(item => item.name));
+    const discoveredNames = new Set([
+        ...loadDiscoveredPlushes(),
+        ...collection.map(item => item.name)
+    ]);
     const drawCount = state.drawCount;
 
     return STICKER_DEFINITIONS.map(sticker => {
@@ -762,8 +781,8 @@ function getStickerProgress(state = loadStickersState()) {
             : sticker.countKey
                 ? Math.min(state[sticker.countKey], sticker.target)
                 : sticker.rarity
-                    ? Math.min(collection.filter(item => plushies.some(plush => plush.name === item.name && plush.rarity === sticker.rarity)).length, sticker.target)
-                    : requiredPlushies.filter(plush => ownedNames.has(plush.name)).length;
+                ? Math.min(plushies.filter(plush => plush.rarity === sticker.rarity && discoveredNames.has(plush.name)).length, sticker.target)
+                : requiredPlushies.filter(plush => discoveredNames.has(plush.name)).length;
         const target = sticker.drawTarget || sticker.target || requiredPlushies.length;
         const completed = Boolean(state.unlocked[sticker.id]) || progressValue >= target;
 
@@ -1046,12 +1065,15 @@ function loadCollection() {
     const raw = JSON.parse(localStorage.getItem('collection')) || [];
     const migrated = raw
         .filter(item => item && typeof item === 'object')
-        .map(item => ({
-            ...item,
-            name: getPlushDisplayName(item.name),
-            image: plushies.find(plush => plush.name === getPlushDisplayName(item.name))?.image || item.image || 'images/unknown.png',
-            count: item.count === undefined || item.count === null ? 1 : Math.floor(Number(item.count))
-        }))
+        .map(item => {
+            const plush = findPlushDefinition(item.name);
+            return {
+                ...item,
+                name: plush?.name || getPlushDisplayName(item.name),
+                image: plush?.image || item.image || 'images/unknown.png',
+                count: item.count === undefined || item.count === null ? 1 : Math.floor(Number(item.count))
+            };
+        })
         .filter(item => Number.isFinite(item.count) && item.count > 0);
     if (migrated.length !== raw.length || migrated.some((item, index) => (
         item.name !== raw[index].name || item.image !== raw[index].image || item.count !== (raw[index].count ?? 1)
@@ -1747,7 +1769,7 @@ function loadSavedDrawResults() {
         name: getPlushDisplayName(savedCard.name)
     }));
     const drawnResults = cards.map(savedCard => ({
-        plush: plushies.find(plush => plush.name === savedCard.name),
+        plush: findPlushDefinition(savedCard.name),
         variant: ['normal', 'gold', 'rainbow', 'negative'].includes(savedCard.variant) ? savedCard.variant : 'normal',
         sold: savedCard.sold === true
     })).filter(result => result.plush);
@@ -3650,15 +3672,17 @@ function renderGallery() {
     function renderGalleryCard(plush, hidden, extraClasses = '', variant = null, quickSellKey = null) {
         const collectedItem = collection.find(item => item.name === plush.name);
         const variantCounts = getCollectedVariantCounts(collectedItem);
-        const cardVariant = variant || (variantCounts.normal > 0
+        const cardVariant = !showCollectedOnlyInCatalog
             ? 'normal'
-            : variantCounts.gold > 0
-                ? 'gold'
-                : variantCounts.rainbow > 0
-                    ? 'rainbow'
-                    : variantCounts.negative > 0
-                        ? 'negative'
-                        : null);
+            : variant || (variantCounts.normal > 0
+                ? 'normal'
+                : variantCounts.gold > 0
+                    ? 'gold'
+                    : variantCounts.rainbow > 0
+                        ? 'rainbow'
+                        : variantCounts.negative > 0
+                            ? 'negative'
+                            : null);
         const safeName = plush.name.replace(/'/g, "\\'");
         const quickSellSelected = quickSellMode && quickSellKey !== null && selectedQuickSellCopies.has(quickSellKey);
         const clickAttr = quickSellMode && quickSellKey !== null
@@ -3904,7 +3928,7 @@ function renderGallery() {
 }
 
 function getPlushByName(name) {
-    return plushies.find(plush => plush.name === name);
+    return findPlushDefinition(name);
 }
 
 function hideFullscreenPlush() {
